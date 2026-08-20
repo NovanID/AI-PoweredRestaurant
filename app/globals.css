@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root { --red:#8f1d20; --gold:#d8a43b; --cream:#fffaf0; --ink:#261b17; --muted:#74635c; --white:#fff; }
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body { margin:0; background:var(--cream); color:var(--ink); font-family:Arial,Helvetica,sans-serif; }
+a { color:inherit; text-decoration:none; }
+.shell { width:min(1080px,calc(100% - 40px)); margin-inline:auto; }
+.nav { min-height:76px; display:flex; align-items:center; justify-content:space-between; }
+.brand { color:var(--red); font-family:Georgia,serif; font-size:24px; font-weight:700; }
+.nav nav { display:flex; gap:28px; font-size:14px; font-weight:700; }
+.hero { min-height:620px; display:grid; grid-template-columns:1.2fr .8fr; gap:80px; align-items:center; }
+.eyebrow { margin:0 0 18px; color:var(--red); font-size:12px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; }
+h1,h2,h3,p { margin-top:0; }
+h1 { margin-bottom:24px; font-family:Georgia,serif; font-size:clamp(48px,7vw,82px); line-height:.98; letter-spacing:-3px; }
+h2 { margin-bottom:22px; font-family:Georgia,serif; font-size:clamp(36px,5vw,58px); line-height:1.05; }
+.lead,.section-heading p,.reservation-grid>div>p { color:var(--muted); font-size:17px; line-height:1.7; }
+.lead { max-width:580px; margin-bottom:32px; }
+.button { display:inline-flex; min-height:48px; align-items:center; justify-content:center; padding:0 22px; border:0; border-radius:8px; background:var(--red); color:var(--white); font-weight:800; cursor:pointer; }
+.hero-card { padding:38px; border-radius:18px; background:var(--red); color:var(--white); box-shadow:18px 18px 0 var(--gold); }
+.hero-card span,.hero-card strong { display:block; }.hero-card span { color:#ffd98a; font-size:13px; }.hero-card strong { margin:12px 0 24px; font-family:Georgia,serif; font-size:38px; }.hero-card p { margin:0; line-height:1.6; }
+.section { padding-block:110px; }
+.section-heading { display:grid; grid-template-columns:1.2fr .8fr; gap:60px; align-items:end; margin-bottom:48px; }.section-heading h2,.section-heading p { margin-bottom:0; }
+.menu-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+.menu-grid article { min-height:250px; padding:28px; border:1px solid #eadfca; border-radius:14px; background:var(--white); }.menu-grid article>span { color:var(--red); font-size:12px; font-weight:800; }.menu-grid h3 { margin:55px 0 12px; font-family:Georgia,serif; font-size:25px; }.menu-grid p { min-height:48px; color:var(--muted); line-height:1.5; }.menu-grid strong { color:var(--red); }
+.reservation { padding-block:110px; background:#f1e4cd; }.reservation-grid { display:grid; grid-template-columns:.8fr 1.2fr; gap:80px; }
+form,.confirmation { padding:32px; border-radius:16px; background:var(--white); }
+label { display:grid; gap:8px; margin-bottom:18px; font-size:13px; font-weight:700; }
+input,textarea { width:100%; padding:13px; border:1px solid #d8cbbb; border-radius:7px; background:white; color:var(--ink); font:inherit; }
+input:focus,textarea:focus { outline:3px solid #d8a43b55; border-color:var(--gold); }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+form .button { width:100%; }
+.confirmation { display:grid; place-items:start; align-content:center; min-height:360px; }.confirmation>span { color:var(--red); font-weight:800; }.confirmation>strong { margin:18px 0; font-family:Georgia,serif; font-size:48px; }.confirmation p { color:var(--muted); }.confirmation button { padding:0; border:0; background:none; color:var(--red); font-weight:800; cursor:pointer; }
+footer { min-height:130px; display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:13px; }footer strong { color:var(--red); font-family:Georgia,serif; font-size:18px; }
+@media (max-width:720px) { .shell { width:min(100% - 28px,560px); }.nav nav { gap:16px; }.hero { min-height:0; grid-template-columns:1fr; gap:55px; padding-block:70px 90px; }.hero-card { box-shadow:10px 10px 0 var(--gold); }.section,.reservation { padding-block:75px; }.section-heading,.reservation-grid { grid-template-columns:1fr; gap:30px; }.menu-grid { grid-template-columns:1fr; }.form-row { grid-template-columns:1fr; gap:0; }footer { align-items:flex-start; flex-direction:column; justify-content:center; gap:10px; } }
