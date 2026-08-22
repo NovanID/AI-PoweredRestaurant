@@ -1,0 +1,190 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { useRestaurant } from "../lib/use-restaurant";
+import { MenuCategory } from "../types/restaurant";
+
+const CATEGORIES: Array<MenuCategory | "Semua"> = [
+  "Semua",
+  "Lauk Utama",
+  "Sayur & Kuah",
+  "Pelengkap & Sambal",
+  "Minuman",
+];
+
+export default function MenuSection() {
+  const { menu, isClient } = useRestaurant();
+  const [selectedCategory, setSelectedCategory] = useState<MenuCategory | "Semua">("Semua");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredItems = useMemo(() => {
+    return menu.filter((item) => {
+      if (selectedCategory !== "Semua" && item.category !== selectedCategory) {
+        return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = item.name.toLowerCase().includes(q);
+        const matchDesc = item.description.toLowerCase().includes(q);
+        const matchCat = item.category.toLowerCase().includes(q);
+        return matchName || matchDesc || matchCat;
+      }
+      return true;
+    });
+  }, [menu, selectedCategory, searchQuery]);
+
+  const formatPrice = (val: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(val);
+  };
+
+  return (
+    <section className="section shell" id="menu">
+      <div className="text-center max-w-2xl mx-auto mb-10">
+        <p className="eyebrow">Pilihan Hidangan Tradisi</p>
+        <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#8f1d20] mb-4">
+          Cita Rasa Otentik Minang
+        </h2>
+        <p className="text-[#74635c] text-sm md:text-base leading-relaxed">
+          Semua hidangan diolah harian dengan rempah segar tanpa pengawet. Status ketersediaan diperbarui langsung oleh dapur kami.
+        </p>
+      </div>
+
+      {/* Search & Category Filter */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-10">
+        {/* Search Bar */}
+        <div className="relative w-full md:w-80">
+          <input
+            type="text"
+            placeholder="Cari hidangan (e.g. Rendang, Ayam Pop)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-full border border-[#d8cbbb] bg-white text-[#261b17] text-sm focus:outline-none focus:ring-2 focus:ring-[#d8a43b] focus:border-transparent transition-all shadow-sm"
+          />
+          <svg
+            className="w-4 h-4 text-[#74635c] absolute left-3.5 top-1/2 -translate-y-1/2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#74635c] hover:text-[#8f1d20]"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Category Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded-full text-xs md:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
+                selectedCategory === cat
+                  ? "bg-[#8f1d20] text-white shadow-md shadow-[#8f1d20]/20"
+                  : "bg-white text-[#74635c] border border-[#eadfca] hover:border-[#8f1d20]/40 hover:text-[#8f1d20]"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Menu Grid */}
+      {filteredItems.length === 0 ? (
+        <div className="text-center py-16 bg-white/70 rounded-2xl border border-dashed border-[#d8cbbb]">
+          <p className="text-[#74635c] font-medium text-base mb-2">
+            Tidak ada menu yang sesuai dengan kata kunci &quot;{searchQuery}&quot;
+          </p>
+          <button
+            onClick={() => {
+              setSearchQuery("");
+              setSelectedCategory("Semua");
+            }}
+            className="text-xs font-bold text-[#8f1d20] hover:underline"
+          >
+            Reset Pencarian
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredItems.map((item) => (
+            <article
+              key={item.id}
+              className={`group flex flex-col justify-between p-6 rounded-2xl border transition-all duration-200 ${
+                item.isAvailable
+                  ? "bg-white border-[#eadfca] hover:border-[#d8a43b] hover:shadow-lg hover:shadow-[#d8a43b]/10"
+                  : "bg-[#f5f1eb]/70 border-[#e2d8cb] opacity-75"
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                        item.isAvailable
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          : "bg-neutral-100 text-neutral-500 border border-neutral-200"
+                      }`}
+                    >
+                      {item.isAvailable ? "✓ Tersedia" : "✕ Habis Hari Ini"}
+                    </span>
+                    {item.isPopular && (
+                      <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-[#d8a43b]/15 text-[#8f1d20] border border-[#d8a43b]/30">
+                        ★ Favorit
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-semibold text-[#74635c] uppercase tracking-wider">
+                    {item.category}
+                  </span>
+                </div>
+
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <h3 className="font-serif text-xl font-bold text-[#261b17] group-hover:text-[#8f1d20] transition-colors leading-snug">
+                    {item.name}
+                  </h3>
+                  {item.spicinessLevel && item.spicinessLevel > 1 && (
+                    <span
+                      title={`Tingkat kepedasan: ${item.spicinessLevel}/3`}
+                      className="text-xs"
+                    >
+                      {"🌶️".repeat(item.spicinessLevel)}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs md:text-sm text-[#74635c] leading-relaxed mb-6">
+                  {item.description}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-[#f1e6d4] mt-auto">
+                <strong className="font-serif text-xl text-[#8f1d20] font-bold">
+                  {formatPrice(item.price)}
+                </strong>
+                <a
+                  href="#reservasi"
+                  className="text-xs font-bold text-[#74635c] group-hover:text-[#8f1d20] flex items-center gap-1 transition-colors"
+                >
+                  <span>Pesan Meja</span>
+                  <span>→</span>
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}

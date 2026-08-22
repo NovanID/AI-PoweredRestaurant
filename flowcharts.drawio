@@ -1,0 +1,783 @@
+<mxfile host="app.diagrams.net" modified="2026-08-20T09:07:00.000Z" agent="Antigravity" version="24.0.0" type="device">
+  
+  <!-- ========================================== -->
+  <!-- PAGE 1: CUSTOMER WEB RESERVATION FLOW      -->
+  <!-- ========================================== -->
+  <diagram id="page-customer-web" name="1. Customer Web Flow">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title1" value="ALUR RESERVASI CUSTOMER VIA WEB (UI FLOW)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="300" y="30" width="500" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle1" value="AI-Powered Restaurant MVP - Customer Booking Lifecycle" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748B;" vertex="1" parent="1">
+          <mxGeometry x="300" y="65" width="500" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Start -->
+        <mxCell id="node_start" value="Mulai: Customer Buka Web Restoran" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#10B981;strokeColor=#059669;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="110" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1: Input Preferences -->
+        <mxCell id="node_step1" value="Pilih Tanggal, Waktu &amp; Jumlah Tamu&#xa;(Guest Count)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=13;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="430" y="195" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Opening Hours -->
+        <mxCell id="node_dec_hours" value="Dalam Jam Operasional?&#xa;(10:00 - 22:00)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="295" width="200" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Err Hours -->
+        <mxCell id="node_err_hours" value="Tampilkan Peringatan:&#xa;Di Luar Jam Operasional" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#881337;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="720" y="312.5" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Check Availability -->
+        <mxCell id="node_dec_avail" value="Cek Ketersediaan Meja&#xa;(Kapasitas &amp; Jadwal)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#E0E7FF;strokeColor=#6366F1;fontColor=#312E81;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="430" width="200" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Err Avail -->
+        <mxCell id="node_err_avail" value="Tampilkan Notifikasi:&#xa;Meja Penuh / Pilih Waktu Lain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#EF4444;fontColor=#991B1B;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="720" y="447.5" width="190" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Select Area -->
+        <mxCell id="node_step2" value="Pilih Area Meja yang Tersedia&#xa;(Indoor / Outdoor / VIP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="430" y="560" width="240" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3: Input Customer Data -->
+        <mxCell id="node_step3" value="Isi Data Pemesan:&#xa;Nama, No. HP, &amp; Opsi Bayar Deposit" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="430" y="655" width="240" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Decision: Payment Option -->
+        <mxCell id="node_dec_pay" value="Opsi Pembayaran?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="750" width="200" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Branch A: Bayar Nanti -->
+        <mxCell id="node_db_save_pending" value="Simpan ke DB: Status 'pending'&#xa;Payment: 'unpaid'&#xa;Generate Kode 'RM-XXXX'" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="170" y="870" width="240" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_success_pending" value="Halaman Sukses:&#xa;Status Menunggu Persetujuan Staff&#xa;(Tersedia Tombol Bayar Deposit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="160" y="990" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Branch B: Bayar Deposit Midtrans -->
+        <mxCell id="node_snap_token" value="Backend API: POST /api/payment/token&#xa;Generate Midtrans Snap Token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0E7FF;strokeColor=#6366F1;fontColor=#312E81;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="690" y="870" width="250" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_snap_popup" value="Muncul Popup Midtrans Snap:&#xa;Customer Bayar (QRIS/VA/GoPay)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#6366F1;fontColor=#0F172A;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="695" y="960" width="240" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_webhook_sync" value="Midtrans Kirim Webhook (POST):&#xa;Verifikasi SHA512 &amp; Status 'settlement'&#xa;DB: Status 'confirmed' &amp; 'settlement'" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ECFDF5;strokeColor=#10B981;fontColor=#065F46;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="1050" width="270" height="85" as="geometry" />
+        </mxCell>
+
+        <mxCell id="node_success_confirmed" value="Halaman Sukses:&#xa;Status TERKONFIRMASI INSTAN &amp;&#xa;Deposit Lunas (QRIS/VA)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontColor=#065F46;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="685" y="1170" width="260" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- End -->
+        <mxCell id="node_end" value="Selesai" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#10B981;strokeColor=#059669;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="1270" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Connectors -->
+        <mxCell id="e1" edge="1" parent="1" source="node_start" target="node_step1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="node_step1" target="node_dec_hours" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Hour decision edges -->
+        <mxCell id="e3_no" edge="1" parent="1" source="node_dec_hours" target="node_err_hours" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F43F5E;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_e3_no" value="Tidak" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#F43F5E;fontStyle=1;" vertex="1" connectable="0" parent="e3_no">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e3_back" edge="1" parent="1" source="node_err_hours" target="node_step1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94A3B8;strokeWidth=1;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e3_yes" edge="1" parent="1" source="node_dec_hours" target="node_dec_avail" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_e3_yes" value="Ya" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#10B981;fontStyle=1;" vertex="1" connectable="0" parent="e3_yes">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Avail decision edges -->
+        <mxCell id="e4_no" edge="1" parent="1" source="node_dec_avail" target="node_err_avail" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#EF4444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_e4_no" value="Penuh" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#EF4444;fontStyle=1;" vertex="1" connectable="0" parent="e4_no">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e4_back" edge="1" parent="1" source="node_err_avail" target="node_step1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94A3B8;strokeWidth=1;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="870" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="e4_yes" edge="1" parent="1" source="node_dec_avail" target="node_step2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_e4_yes" value="Tersedia" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#10B981;fontStyle=1;" vertex="1" connectable="0" parent="e4_yes">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- Downward sequence -->
+        <mxCell id="e5" edge="1" parent="1" source="node_step2" target="node_step3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="node_step3" target="node_dec_pay" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Pay decision branch A: Bayar Nanti -->
+        <mxCell id="e_pay_later" edge="1" parent="1" source="node_dec_pay" target="node_db_save_pending" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F59E0B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_pay_later" value="Bayar di Restoran" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#B45309;fontStyle=1;" vertex="1" connectable="0" parent="e_pay_later">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_p1" edge="1" parent="1" source="node_db_save_pending" target="node_success_pending" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_p2" edge="1" parent="1" source="node_success_pending" target="node_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="1290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Pay decision branch B: Bayar Deposit Midtrans -->
+        <mxCell id="e_pay_now" edge="1" parent="1" source="node_dec_pay" target="node_snap_token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6366F1;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_pay_now" value="Bayar Deposit Sekarang (Snap)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#4338CA;fontStyle=1;" vertex="1" connectable="0" parent="e_pay_now">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="e_s1" edge="1" parent="1" source="node_snap_token" target="node_snap_popup" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s2" edge="1" parent="1" source="node_snap_popup" target="node_webhook_sync" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s3" edge="1" parent="1" source="node_webhook_sync" target="node_success_confirmed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_s4" edge="1" parent="1" source="node_success_confirmed" target="node_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="815" y="1290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+
+  <!-- ========================================== -->
+  <!-- PAGE 2: AI ASSISTANT CONVERSATION & TOOLS  -->
+  <!-- ========================================== -->
+  <diagram id="page-ai-assistant" name="2. AI Assistant Flow">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title2" value="ALUR INTERAKSI AI ASSISTANT &amp; TOOL CALLING" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="300" y="30" width="550" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle2" value="Natural Language Reservation Flow via Restaurant AI Tools" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748B;" vertex="1" parent="1">
+          <mxGeometry x="300" y="65" width="550" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Start -->
+        <mxCell id="ai_start" value="Mulai: Customer Kirim Pesan Chat ke AI" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#6366F1;strokeColor=#4F46E5;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="110" width="290" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- NLP Parsing -->
+        <mxCell id="ai_parse" value="AI Agent Analisis Intent &amp; Ekstrak Parameter:&#xa;(Tanggal, Waktu, Jumlah Tamu, Nama, dsb)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="415" y="195" width="300" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Intent Decision -->
+        <mxCell id="ai_intent_dec" value="Kategori Permintaan&#xa;Customer?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="465" y="295" width="200" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Branch 1: FAQ / Menu -->
+        <mxCell id="ai_tool_menu" value="Panggil Tool:&#xa;get_menu / get_restaurant_info" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0F2FE;strokeColor=#0284C7;fontColor=#0369A1;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="140" y="420" width="220" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_db_menu" value="Query Database PostgreSQL&#xa;(Menu Aktif, Harga, Info Resto)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="140" y="515" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_resp_menu" value="AI Menjawab FAQ / Menu&#xa;Berdasarkan Data Asli (No Guessing)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontColor=#065F46;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="625" width="240" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Branch 2: Reservasi Table -->
+        <mxCell id="ai_tool_check" value="Panggil Tool:&#xa;check_availability(date, time, pax)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0E7FF;strokeColor=#6366F1;fontColor=#312E81;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="455" y="420" width="220" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_db_check" value="Cek Jadwal &amp; Kapasitas Meja&#xa;di Database Restoran" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="455" y="515" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_dec_table" value="Meja Tersedia?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="620" width="170" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_suggest_alt" value="AI Sarankan Opsi Alternatif:&#xa;Waktu Lain atau Area Lain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#EF4444;fontColor=#991B1B;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="740" y="632.5" width="200" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_ask_confirm" value="AI Tampilkan Rincian Reservasi &amp;&#xa;Minta Konfirmasi Eksplisit Pelanggan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="740" width="270" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_dec_confirm" value="Customer Konfirmasi&#xa;Setuju / 'Ya'?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="470" y="835" width="190" height="85" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_user_cancel" value="AI Batalkan Alur Reservasi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#881337;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="740" y="850" width="190" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_tool_create" value="Panggil Tool:&#xa;create_reservation(payload)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4F46E5;strokeColor=#4338CA;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="455" y="955" width="220" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_db_save" value="Simpan ke DB: Status 'pending'&#xa;Generate Kode Unik 'RM-XXXX'" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="450" y="1040" width="230" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_final_resp" value="AI Memberikan Kode Reservasi &amp;&#xa;Menjelaskan Menunggu Persetujuan Staff" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontColor=#065F46;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="430" y="1150" width="270" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ai_end" value="Selesai" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#10B981;strokeColor=#059669;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="495" y="1245" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="ai_e1" edge="1" parent="1" source="ai_start" target="ai_parse" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_e2" edge="1" parent="1" source="ai_parse" target="ai_intent_dec" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Branch FAQ -->
+        <mxCell id="ai_e_faq" edge="1" parent="1" source="ai_intent_dec" target="ai_tool_menu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0284C7;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_faq" value="Menu / FAQ" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#0284C7;fontStyle=1;" vertex="1" connectable="0" parent="ai_e_faq">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="ai_e_f1" edge="1" parent="1" source="ai_tool_menu" target="ai_db_menu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_e_f2" edge="1" parent="1" source="ai_db_menu" target="ai_resp_menu" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_e_f3" edge="1" parent="1" source="ai_resp_menu" target="ai_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#94A3B8;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="250" y="1265" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Branch Res -->
+        <mxCell id="ai_e_res" edge="1" parent="1" source="ai_intent_dec" target="ai_tool_check" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6366F1;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_res" value="Reservasi" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#6366F1;fontStyle=1;" vertex="1" connectable="0" parent="ai_e_res">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="ai_e_r1" edge="1" parent="1" source="ai_tool_check" target="ai_db_check" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_e_r2" edge="1" parent="1" source="ai_db_check" target="ai_dec_table" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Table Avail Decision -->
+        <mxCell id="ai_e_tab_no" edge="1" parent="1" source="ai_dec_table" target="ai_suggest_alt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#EF4444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_tab_no" value="Penuh" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#EF4444;fontStyle=1;" vertex="1" connectable="0" parent="ai_e_tab_no">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="ai_e_tab_yes" edge="1" parent="1" source="ai_dec_table" target="ai_ask_confirm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_tab_yes" value="Tersedia" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#10B981;fontStyle=1;" vertex="1" connectable="0" parent="ai_e_tab_yes">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="ai_e_c1" edge="1" parent="1" source="ai_ask_confirm" target="ai_dec_confirm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User Confirmation Decision -->
+        <mxCell id="ai_e_usr_no" edge="1" parent="1" source="ai_dec_confirm" target="ai_user_cancel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F43F5E;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_usr_no" value="Batal" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#F43F5E;fontStyle=1;" vertex="1" connectable="0" parent="ai_e_usr_no">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="ai_e_usr_yes" edge="1" parent="1" source="ai_dec_confirm" target="ai_tool_create" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_usr_yes" value="Ya" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#10B981;fontStyle=1;" vertex="1" connectable="0" parent="ai_e_usr_yes">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="ai_e_c2" edge="1" parent="1" source="ai_tool_create" target="ai_db_save" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_e_c3" edge="1" parent="1" source="ai_db_save" target="ai_final_resp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ai_e_c4" edge="1" parent="1" source="ai_final_resp" target="ai_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+
+  <!-- ========================================== -->
+  <!-- PAGE 3: STAFF ADMIN APPROVAL FLOW          -->
+  <!-- ========================================== -->
+  <diagram id="page-admin-flow" name="3. Admin Staff Flow">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title3" value="ALUR APPROVAL &amp; PENGELOLAAN RESERVASI OLEH STAFF" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="250" y="30" width="650" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle3" value="Staff Dashboard Operations &amp; Audit Trail Lifecycle" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748B;" vertex="1" parent="1">
+          <mxGeometry x="250" y="65" width="650" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Start -->
+        <mxCell id="adm_start" value="Mulai: Staff Login ke Admin Dashboard" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#334155;strokeColor=#1E293B;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="110" width="280" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Step 1 -->
+        <mxCell id="adm_step1" value="Buka Menu 'Reservations' &amp;&#xa;Tinjau Reservasi Berstatus 'PENDING'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="425" y="195" width="270" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Detail check -->
+        <mxCell id="adm_step2" value="Lihat Detail: Nama Customer, Nomor Meja,&#xa;Tanggal, Jam, Pax, &amp; Catatan Khusus" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="415" y="285" width="290" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Decision -->
+        <mxCell id="adm_dec" value="Keputusan Staff Restoran?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="455" y="380" width="210" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Branch Reject -->
+        <mxCell id="adm_reject" value="Pilih: 'Tolak Reservasi'&#xa;(Input Alasan / Rejection Reason)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#881337;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="170" y="505" width="240" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="adm_db_reject" value="Update Database:&#xa;• status: 'rejected'&#xa;• rejection_reason: [keterangan]" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="170" y="605" width="240" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Branch Confirm -->
+        <mxCell id="adm_confirm" value="Pilih: 'Setujui Reservasi'&#xa;(Konfirmasi Alokasi Meja)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontColor=#065F46;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="710" y="505" width="240" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="adm_db_confirm" value="Update Database:&#xa;• status: 'confirmed'&#xa;• Lock Slot Jadwal Meja" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="710" y="605" width="240" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Audit Log -->
+        <mxCell id="adm_audit" value="Catat Riwayat ke Tabel AuditEvent:&#xa;(Actor: Staff Email, Action: STATUS_CHANGE, Entity: Reservation, Timestamp)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="730" width="360" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Customer View Updated -->
+        <mxCell id="adm_sync" value="Status Terupdate Secara Realtime:&#xa;Customer dapat melihat status baru di Web / via AI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="400" y="835" width="320" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- End -->
+        <mxCell id="adm_end" value="Selesai" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#10B981;strokeColor=#059669;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="490" y="930" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Connectors -->
+        <mxCell id="adm_e1" edge="1" parent="1" source="adm_start" target="adm_step1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="adm_e2" edge="1" parent="1" source="adm_step1" target="adm_step2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="adm_e3" edge="1" parent="1" source="adm_step2" target="adm_dec" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Reject edges -->
+        <mxCell id="adm_e_rej" edge="1" parent="1" source="adm_dec" target="adm_reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F43F5E;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_adm_rej" value="Tolak" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#F43F5E;fontStyle=1;" vertex="1" connectable="0" parent="adm_e_rej">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="adm_e_rej_db" edge="1" parent="1" source="adm_reject" target="adm_db_reject" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Confirm edges -->
+        <mxCell id="adm_e_conf" edge="1" parent="1" source="adm_dec" target="adm_confirm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_adm_conf" value="Setujui" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#10B981;fontStyle=1;" vertex="1" connectable="0" parent="adm_e_conf">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="adm_e_conf_db" edge="1" parent="1" source="adm_confirm" target="adm_db_confirm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Merge to Audit -->
+        <mxCell id="adm_e_m1" edge="1" parent="1" source="adm_db_reject" target="adm_audit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="290" y="760" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="adm_e_m2" edge="1" parent="1" source="adm_db_confirm" target="adm_audit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="830" y="760" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="adm_e_audit_sync" edge="1" parent="1" source="adm_audit" target="adm_sync" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="adm_e_sync_end" edge="1" parent="1" source="adm_sync" target="adm_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+
+  <!-- ====================================================== -->
+  <!-- PAGE 4: BACKEND ANTI DOUBLE-BOOKING ATOMIC TRANSACTION -->
+  <!-- ====================================================== -->
+  <diagram id="page-backend-lock" name="4. Backend Anti Double-Booking">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title4" value="LOGIKA BACKEND ANTI-DOUBLE BOOKING (PRISMA TRANSACTION)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="220" y="30" width="720" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle4" value="Atomic Reservation Validation &amp; Conflict Prevention Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748B;" vertex="1" parent="1">
+          <mxGeometry x="220" y="65" width="720" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Start -->
+        <mxCell id="tx_start" value="Request Masuk:&#xa;POST /reservations atau Tool: create_reservation" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#0284C7;strokeColor=#0369A1;fontColor=#FFFFFF;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="110" width="340" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Validation -->
+        <mxCell id="tx_val" value="Validasi Schema (DTO / Zod):&#xa;TenantId, Date, Time, Pax, TableId, Phone" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="430" y="195" width="280" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Begin Transaction -->
+        <mxCell id="tx_begin" value="Buka Prisma Interactive Transaction&#xa;prisma.$transaction(async (tx) =&gt; { ... })" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="420" y="285" width="300" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Query Conflict -->
+        <mxCell id="tx_query" value="Query Cek Konflik Jadwal Meja:&#xa;tx.reservation.findFirst({&#xa;  where: { tenantId, tableId, reservationDate,&#xa;           reservationTime, status: { in: ['pending', 'confirmed'] } }&#xa;})" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=11;fontFamily=Courier New;align=left;" vertex="1" parent="1">
+          <mxGeometry x="380" y="380" width="380" height="95" as="geometry" />
+        </mxCell>
+
+        <!-- Decision -->
+        <mxCell id="tx_dec" value="Ditemukan Jadwal&#xa;Bertabrakan (Konflik)?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="465" y="515" width="210" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Rollback Conflict -->
+        <mxCell id="tx_rollback" value="Rollback Transaction&#xa;Throw ConflictException (HTTP 409):&#xa;'Slot Meja Sudah Dipesan'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#881337;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="760" y="530" width="240" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Insert Reservation -->
+        <mxCell id="tx_insert_res" value="tx.reservation.create({&#xa;  data: { code: 'RM-XXXX', status: 'pending', ...payload }&#xa;})" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=12;fontFamily=Courier New;align=left;" vertex="1" parent="1">
+          <mxGeometry x="410" y="645" width="320" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Upsert Customer -->
+        <mxCell id="tx_upsert_cust" value="tx.customer.upsert({&#xa;  where: { tenantId_phone },&#xa;  update: { reservationCount: +1, lastVisit: now() },&#xa;  create: { ...customerData }&#xa;})" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=11;fontFamily=Courier New;align=left;" vertex="1" parent="1">
+          <mxGeometry x="410" y="735" width="320" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Log Audit -->
+        <mxCell id="tx_log_audit" value="tx.auditEvent.create({&#xa;  action: 'RESERVATION_CREATED', actor: 'customer/ai'&#xa;})" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=11;fontFamily=Courier New;align=left;" vertex="1" parent="1">
+          <mxGeometry x="410" y="835" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Commit -->
+        <mxCell id="tx_commit" value="Commit Database Transaction" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontColor=#065F46;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="920" width="240" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Return -->
+        <mxCell id="tx_return" value="Kembalikan HTTP 201 Created&#xa;(JSON Response: Reservation &amp; Code RM-XXXX)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1000" width="300" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- End -->
+        <mxCell id="tx_end" value="Selesai" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#10B981;strokeColor=#059669;fontColor=#FFFFFF;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="1090" width="140" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Connectors -->
+        <mxCell id="tx_e1" edge="1" parent="1" source="tx_start" target="tx_val" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tx_e2" edge="1" parent="1" source="tx_val" target="tx_begin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tx_e3" edge="1" parent="1" source="tx_begin" target="tx_query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tx_e4" edge="1" parent="1" source="tx_query" target="tx_dec" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Conflict edges -->
+        <mxCell id="tx_e_conf_yes" edge="1" parent="1" source="tx_dec" target="tx_rollback" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F43F5E;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_tx_conf_yes" value="Ada Konflik" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#F43F5E;fontStyle=1;" vertex="1" connectable="0" parent="tx_e_conf_yes">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="tx_e_conf_no" edge="1" parent="1" source="tx_dec" target="tx_insert_res" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_tx_conf_no" value="Tidak (Slot Kosong)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#10B981;fontStyle=1;" vertex="1" connectable="0" parent="tx_e_conf_no">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="tx_e_ins_ups" edge="1" parent="1" source="tx_insert_res" target="tx_upsert_cust" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tx_e_ups_log" edge="1" parent="1" source="tx_upsert_cust" target="tx_log_audit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tx_e_log_com" edge="1" parent="1" source="tx_log_audit" target="tx_commit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tx_e_com_ret" edge="1" parent="1" source="tx_commit" target="tx_return" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tx_e_ret_end" edge="1" parent="1" source="tx_return" target="tx_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+
+  <!-- ====================================================== -->
+  <!-- PAGE 5: MIDTRANS SNAP PAYMENT GATEWAY & WEBHOOK FLOW   -->
+  <!-- ====================================================== -->
+  <diagram id="page-midtrans-payment" name="5. Midtrans Payment Gateway">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="mid_title" value="ARSITEKTUR INTEGRASI MIDTRANS PAYMENT GATEWAY (SNAP API &amp; WEBHOOK)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="200" y="30" width="760" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mid_subtitle" value="Snap Token Generation, Checkout UI Popup, &amp; SHA-512 Signature Verified Webhook Callback" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748B;" vertex="1" parent="1">
+          <mxGeometry x="200" y="65" width="760" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Phase 1: Snap Token Creation -->
+        <mxCell id="mid_p1_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEF2FF;strokeColor=#6366F1;strokeWidth=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="110" width="1000" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="mid_p1_lbl" value="FASE 1: GENERATE SNAP TOKEN (BACKEND &amp; FRONTEND)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#4338CA;" vertex="1" parent="1">
+          <mxGeometry x="100" y="120" width="450" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_c1" value="Customer Klik 'Bayar Deposit'&#xa;(Pesan Meja / Lacak Tiket)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="160" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_c2" value="Client Kirim HTTP POST:&#xa;/api/payment/token&#xa;{ orderId, amount, customer }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0E7FF;strokeColor=#6366F1;fontColor=#312E81;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="360" y="155" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_c3" value="Backend Call Midtrans Snap API:&#xa;POST /snap/v1/transactions&#xa;Header: Basic Auth (ServerKey)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="630" y="155" width="230" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_c4" value="Midtrans Kembalikan:&#xa;{ token, redirect_url }" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ECFDF5;strokeColor=#10B981;fontColor=#065F46;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="900" y="145" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_c5" value="Browser Menjalankan:&#xa;window.snap.pay(token, callbacks)&#xa;(Tampil Popup QRIS, GoPay, VA, CC)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="270" width="460" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Phase 2: Customer Payment & Webhook -->
+        <mxCell id="mid_p2_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;strokeWidth=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="420" width="1000" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="mid_p2_lbl" value="FASE 2: WEBHOOK NOTIFIKASI &amp; VERIFIKASI SIGNATURE KEAMANAN" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#065F46;" vertex="1" parent="1">
+          <mxGeometry x="100" y="430" width="550" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_w1" value="Customer Selesaikan Bayar&#xa;(Scan QRIS / Transfer VA)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="475" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_w2" value="Midtrans Server Kirim Webhook (HTTP POST):&#xa;/api/payment/webhook&#xa;Payload: order_id, status_code, gross_amount, signature_key" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="360" y="470" width="430" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_w_sig_dec" value="Verifikasi SHA512 Signature:&#xa;SHA512(order_id + status_code +&#xa;gross_amount + ServerKey)&#xa;=== signature_key?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="445" y="560" width="260" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_w_rej" value="Tolak Webhook (HTTP 401):&#xa;'Invalid Signature Key'&#xa;(Cegah Serangan Spoofing/Tampering)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#881337;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="780" y="587.5" width="240" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_w_db_update" value="Update Database &amp; Restaurant Store:&#xa;• payment_status: 'settlement'&#xa;• reservation_status: 'confirmed'&#xa;• payment_method: 'gopay / bca_va'&#xa;• payment_paid_at: CURRENT_TIMESTAMP" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#4C1D95;fontSize=11;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="410" y="705" width="330" height="95" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mid_w_ack" value="Kembalikan HTTP 200 OK&#xa;{ status: 'OK', message: 'Processed' }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#10B981;fontColor=#065F46;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="790" y="727.5" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Edges Phase 1 -->
+        <mxCell id="me1" edge="1" parent="1" source="mid_c1" target="mid_c2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me2" edge="1" parent="1" source="mid_c2" target="mid_c3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me3" edge="1" parent="1" source="mid_c3" target="mid_c4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me4" edge="1" parent="1" source="mid_c4" target="mid_c5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="980" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Edges Phase 2 -->
+        <mxCell id="me5" edge="1" parent="1" source="mid_c5" target="mid_w1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="380" />
+              <mxPoint x="210" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="me6" edge="1" parent="1" source="mid_w1" target="mid_w2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me7" edge="1" parent="1" source="mid_w2" target="mid_w_sig_dec" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="me8_no" edge="1" parent="1" source="mid_w_sig_dec" target="mid_w_rej" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F43F5E;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_me8_no" value="Tidak Valid" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#F43F5E;fontStyle=1;" vertex="1" connectable="0" parent="me8_no">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="me8_yes" edge="1" parent="1" source="mid_w_sig_dec" target="mid_w_db_update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#10B981;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lbl_me8_yes" value="Valid (Cocok)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontColor=#10B981;fontStyle=1;" vertex="1" connectable="0" parent="me8_yes">
+          <mxGeometry x="-0.1" relative="1" as="geometry"><mxPoint as="offset" /></mxGeometry>
+        </mxCell>
+
+        <mxCell id="me9" edge="1" parent="1" source="mid_w_db_update" target="mid_w_ack" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>

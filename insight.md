@@ -65,6 +65,26 @@ oh iya btw kita fokus di kulit luar nya aja, bikinlah sesederhana mungkin ya
 3. localhost dulu ya
 4. jangan dulu
 
+---
+
+## 💡 Insight Arsitektur: Full Automated Confirmation vs Manual Admin Bottleneck
+
+### 1. Mengapa Manual Confirmation Ditinggalkan?
+- **Human Bottleneck:** Customer menunggu tanpa kepastian jika admin offline/sibuk di jam makan siang atau malam.
+- **Risiko Double-Booking & Race Condition:** Dua admin menyetujui dua pesanan bentrok secara manual.
+- **Kerentanan Lonjakan Traffic (Spike Traffic):** Saat promo/weekend, antrean manual menumpuk dan flow rusak.
+
+### 2. Arsitektur Otomatis yang Telah Diterapkan (Bulletproof):
+- **Atomic Slot Locking:** Sistem langsung memverifikasi overlap jadwal (window 90 menit) dan mengunci meja saat reservasi dibuat.
+- **Instant Auto-Confirmed:** Status otomatis `confirmed` dan menerbitkan e-Pass QR (`QR-RM-XXXX-VERIFIED`).
+- **TTL (Time-To-Live) Expiry:** Slot yang menunggu pembayaran deposit dilepas otomatis jika melewati batas waktu (15 menit).
+- **Peran Admin Berubah Menjadi Operational Floor Manager:**
+  - `🟢 Tamu Tiba (Seated)`: Menandai meja terisi saat tamu hadir.
+  - `🔵 Selesai Makan (Completed)`: Meja otomatis kembali kosong dan siap untuk tamu berikutnya.
+  - `⚪ No-Show`: Meja dilepas jika tamu tidak hadir.
+  - `📲 WA Pengingat`: Template pesan konfirmasi otomatis sekali klik.
+
+
 
 
 
