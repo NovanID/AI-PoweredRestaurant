@@ -14,9 +14,10 @@ const CATEGORIES: Array<MenuCategory | "Semua"> = [
 
 interface MenuSectionProps {
   onSelectMenuItem?: (dishName: string) => void;
+  onAskAI?: (prompt: string) => void;
 }
 
-export default function MenuSection({ onSelectMenuItem }: MenuSectionProps) {
+export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionProps) {
   const { menu } = useRestaurant();
   const [selectedCategory, setSelectedCategory] = useState<MenuCategory | "Semua">("Semua");
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,7 +57,7 @@ export default function MenuSection({ onSelectMenuItem }: MenuSectionProps) {
 
   return (
     <section className="shell py-16 md:py-20" id="menu">
-      <div className="text-center max-w-2xl mx-auto mb-10">
+      <div className="text-center max-w-2xl mx-auto mb-8">
         <p className="eyebrow">Pilihan Hidangan Tradisi</p>
         <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#8f1d20] mb-4">
           Cita Rasa Otentik Minang
@@ -65,6 +66,33 @@ export default function MenuSection({ onSelectMenuItem }: MenuSectionProps) {
           Semua hidangan diolah harian dengan rempah segar tanpa pengawet. Status ketersediaan diperbarui langsung oleh dapur kami.
         </p>
       </div>
+
+      {/* AI Sommelier Recommendation Banner */}
+      {onAskAI && (
+        <div className="mb-8 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-[#8f1d20]/10 via-[#d8a43b]/15 to-[#8f1d20]/5 border border-[#d8a43b]/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3 text-left">
+            <div className="w-10 h-10 rounded-2xl bg-[#8f1d20] text-[#ffd98a] flex items-center justify-center font-bold text-lg shrink-0 shadow-xs">
+              ✨
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#8f1d20] uppercase tracking-wider">
+                Bingung Pilih Menu untuk Rombongan?
+              </p>
+              <p className="text-xs text-[#74635c]">
+                Tanyakan kombinasi lauk terfavorit, opsi non-pedas, atau paket santap keluarga ke Asisten AI kami.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onAskAI("Rekomendasikan paket menu makan terbaik untuk 4 orang di Raso Minang")}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#8f1d20] hover:bg-[#731518] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 hover:scale-105"
+          >
+            <span>Tanya Rekomendasi Menu ke AI</span>
+            <span>⚡</span>
+          </button>
+        </div>
+      )}
 
       {/* Search & Category Filter */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-6">

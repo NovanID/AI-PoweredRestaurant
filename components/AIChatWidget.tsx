@@ -6,15 +6,33 @@ import { useRestaurant } from "../lib/use-restaurant";
 
 interface AIChatWidgetProps {
   onTrackReservation?: (code: string) => void;
+  isOpenControlled?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  externalPrompt?: string;
+  onClearExternalPrompt?: () => void;
 }
 
-export default function AIChatWidget({ onTrackReservation }: AIChatWidgetProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function AIChatWidget({
+  onTrackReservation,
+  isOpenControlled,
+  onOpenChange,
+  externalPrompt,
+  onClearExternalPrompt,
+}: AIChatWidgetProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = isOpenControlled !== undefined ? isOpenControlled : internalIsOpen;
+
+  const setIsOpen = (nextOpen: boolean) => {
+    if (onOpenChange) onOpenChange(nextOpen);
+    else setInternalIsOpen(nextOpen);
+  };
+
+  const [showTooltipBubble, setShowTooltipBubble] = useState(true);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome-1",
       sender: "assistant",
-      text: "Halo! Saya **Asisten AI Raso Minang** 🍛.\n\nAda yang bisa saya bantu hari ini? Anda bisa menanyakan menu, mengecek meja kosong secara real-time, atau langsung memesan meja.",
+      text: "Halo! Saya **Asisten AI Raso Minang** 🍛.\n\nAda yang bisa saya bantu hari ini? Anda bisa menanyakan menu autentik, mengecek ketersediaan meja real-time, atau langsung memesan meja dalam 1 pesan.",
       timestamp: "Baru saja",
       actionButtons: [
         { label: "🥘 Menu Favorit", action: "show_menu" },
@@ -36,10 +54,23 @@ export default function AIChatWidget({ onTrackReservation }: AIChatWidgetProps) 
 
   useEffect(() => {
     if (isOpen) {
+      setShowTooltipBubble(false);
       scrollToBottom();
       setTimeout(() => inputRef.current?.focus(), 150);
     }
   }, [messages, isOpen, isTyping]);
+
+  // Listen for external prompts triggered from Hero, Navbar, or Menu sections
+  useEffect(() => {
+    if (externalPrompt && externalPrompt.trim()) {
+      setIsOpen(true);
+      setShowTooltipBubble(false);
+      handleSendMessage(externalPrompt.trim());
+      if (onClearExternalPrompt) {
+        onClearExternalPrompt();
+      }
+    }
+  }, [externalPrompt]);
 
   // Keyboard accessibility: Close on Escape
   useEffect(() => {
@@ -147,6 +178,40 @@ export default function AIChatWidget({ onTrackReservation }: AIChatWidgetProps) 
 
   return (
     <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end max-w-[calc(100vw-1.5rem)]">
+      {/* Speech Bubble / Tooltip Banner when closed */}
+      {!isOpen && showTooltipBubble && (
+        <div className="mb-2.5 max-w-[280px] bg-white p-3 rounded-2xl border-2 border-[#d8a43b] shadow-2xl animate-fade-in relative text-xs">
+          <button
+            onClick={() => setShowTooltipBubble(false)}
+            aria-label="Tutup saran AI"
+            className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-[#261b17] text-white text-[10px] flex items-center justify-center cursor-pointer shadow-xs hover:bg-[#8f1d20]"
+          >
+            ✕
+          </button>
+          <div
+            onClick={() => {
+              setIsOpen(true);
+              setShowTooltipBubble(false);
+            }}
+            className="cursor-pointer group"
+          >
+            <div className="flex items-center gap-1.5 font-bold text-[#8f1d20] mb-1">
+              <span className="text-sm">✨</span>
+              <span>Asisten AI Siap Membantu!</span>
+            </div>
+            <p className="text-[11px] text-[#74635c] leading-relaxed group-hover:text-[#261b17]">
+              Cek meja kosong, tanya rekomendasi rasa, atau booking instan via chat.
+            </p>
+            <div className="mt-1.5 text-[10px] font-bold text-[#8f1d20] flex items-center gap-1">
+              <span>Mulai Chat Sekarang</span>
+              <span>→</span>
+            </div>
+          </div>
+          {/* Tooltip triangle tail */}
+          <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-white border-r-2 border-b-2 border-[#d8a43b] rotate-45"></div>
+        </div>
+      )}
+
       {/* Chat Window */}
       {isOpen && (
         <div
@@ -299,7 +364,7 @@ export default function AIChatWidget({ onTrackReservation }: AIChatWidgetProps) 
       {/* Floating Launcher Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="group flex items-center gap-3 px-4 py-3 rounded-full bg-gradient-to-r from-[#8f1d20] to-[#6a1215] text-white shadow-xl shadow-[#8f1d20]/30 hover:scale-105 transition-all cursor-pointer border border-[#d8a43b]/40"
+        className="group flex items-center gap-3 px-4 py-3 rounded-full bg-gradient-to-r from-[#8f1d20] to-[#6a1215] text-white shadow-xl shadow-[#8f1d20]/30 hover:scale-105 transition-all cursor-pointer border border-[#d8a43b]/40 ring-4 ring-[#8f1d20]/10"
         aria-label="Buka Chat AI Assistant"
       >
         <div className="relative">
@@ -309,7 +374,7 @@ export default function AIChatWidget({ onTrackReservation }: AIChatWidgetProps) 
           <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#8f1d20] animate-ping"></span>
         </div>
         <span className="font-bold text-xs pr-1">
-          {isOpen ? "Tutup Asisten" : "Tanya AI Raso Minang"}
+          {isOpen ? "Tutup Asisten" : "Tanya AI Raso Minang ⚡"}
         </span>
       </button>
     </div>

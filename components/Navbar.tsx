@@ -6,10 +6,11 @@ import { useRestaurant } from "../lib/use-restaurant";
 
 interface NavbarProps {
   onOpenTrackModal?: () => void;
+  onOpenAIChat?: () => void;
   activeSection?: string;
 }
 
-export default function Navbar({ onOpenTrackModal }: NavbarProps) {
+export default function Navbar({ onOpenTrackModal, onOpenAIChat }: NavbarProps) {
   const { reservations, isClient } = useRestaurant();
   const [activeUserBookingCount, setActiveUserBookingCount] = useState(0);
 
@@ -46,19 +47,31 @@ export default function Navbar({ onOpenTrackModal }: NavbarProps) {
           </div>
         </Link>
 
-        <nav className="flex items-center gap-2 sm:gap-6 font-bold text-xs sm:text-sm text-[#74635c]" aria-label="Navigasi Utama">
+        <nav className="flex items-center gap-2 sm:gap-4 font-bold text-xs sm:text-sm text-[#74635c]" aria-label="Navigasi Utama">
           <a
             href="#menu"
-            className="hover:text-[#8f1d20] transition-colors py-2 px-1 focus:outline-none"
+            className="hover:text-[#8f1d20] transition-colors py-2 px-1 focus:outline-none hidden md:block"
           >
             Menu
           </a>
           <a
             href="#reservasi"
-            className="hover:text-[#8f1d20] transition-colors py-2 px-1 focus:outline-none"
+            className="hover:text-[#8f1d20] transition-colors py-2 px-1 focus:outline-none hidden md:block"
           >
             Reservasi
           </a>
+
+          {/* High-visibility AI Spearhead Button */}
+          {onOpenAIChat && (
+            <button
+              onClick={onOpenAIChat}
+              aria-label="Tanya Asisten AI Raso Minang"
+              className="inline-flex min-h-[40px] items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#8f1d20] to-[#6a1215] text-[#ffd98a] hover:text-white border border-[#d8a43b]/40 shadow-sm shadow-[#8f1d20]/20 hover:scale-105 transition-all cursor-pointer focus:outline-none"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span className="text-xs font-bold tracking-wide">✨ Tanya AI</span>
+            </button>
+          )}
 
           {onOpenTrackModal && (
             <button
@@ -69,7 +82,8 @@ export default function Navbar({ onOpenTrackModal }: NavbarProps) {
               <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
-              <span className="text-xs font-bold">Lacak Tiket</span>
+              <span className="text-xs font-bold hidden xs:inline">Lacak</span>
+              <span className="text-xs font-bold xs:hidden">Tiket</span>
               {activeUserBookingCount > 0 && (
                 <span className="flex h-2 w-2 relative">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
