@@ -33,8 +33,12 @@ enum MenuCategory {
 enum ReservationStatus {
   pending
   confirmed
-  rejected
+  seated
+  completed
   cancelled
+  rejected
+  no_show
+  expired
 }
 
 model Restaurant {
@@ -135,7 +139,12 @@ model Reservation {
   reservationDate String            @map("reservation_date") // YYYY-MM-DD
   reservationTime String            @map("reservation_time") // HH:mm
   guestCount      Int               @map("guest_count")
-  status          ReservationStatus @default(pending)
+  status          ReservationStatus @default(confirmed)
+  autoConfirmed   Boolean           @default(true) @map("auto_confirmed")
+  qrToken         String?           @map("qr_token")
+  seatedAt        DateTime?         @map("seated_at")
+  completedAt     DateTime?         @map("completed_at")
+  expiresAt       DateTime?         @map("expires_at")
   paymentStatus   PaymentStatus     @default(unpaid) @map("payment_status")
   paymentAmount   Decimal?          @db.Decimal(12, 2) @map("payment_amount")
   paymentMethod   String?           @map("payment_method")

@@ -53,7 +53,7 @@ export const restaurantAITools = {
 
   create_reservation: (params: {
     customerName: string;
-    customerPhone: string;
+    customerPhone?: string;
     date: string;
     time: string;
     guestCount: number;
@@ -62,7 +62,7 @@ export const restaurantAITools = {
   }): ToolResult => {
     const result = restaurantStore.createReservation({
       customerName: params.customerName,
-      customerPhone: params.customerPhone,
+      customerPhone: params.customerPhone || '-',
       date: params.date,
       time: params.time,
       guestCount: Number(params.guestCount),

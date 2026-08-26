@@ -2,29 +2,36 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRestaurant } from "../lib/use-restaurant";
-import { TableArea, Reservation, PaymentStatus } from "../types/restaurant";
+import { TableArea, Reservation } from "../types/restaurant";
 
 interface ReservationSectionProps {
   onOpenTrackModalWithCode?: (code: string) => void;
+  initialNote?: string;
 }
 
 const DEFAULT_DEPOSIT_AMOUNT = 50000;
 
-export default function ReservationSection({ onOpenTrackModalWithCode }: ReservationSectionProps) {
+export default function ReservationSection({
+  onOpenTrackModalWithCode,
+  initialNote = "",
+}: ReservationSectionProps) {
   const {
     checkAvailability,
     createReservation,
     updatePaymentStatus,
     setReservationSnapToken,
     profile,
+    isClient,
   } = useRestaurant();
 
   const [todayStr, setTodayStr] = useState("2026-08-20");
+  const [tomorrowStr, setTomorrowStr] = useState("2026-08-21");
+  const [dayAfterStr, setDayAfterStr] = useState("2026-08-22");
 
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    date: "2026-08-20",
+    date: "",
     time: "12:30",
     guests: 2,
     area: "Semua" as TableArea | "Semua",
@@ -32,14 +39,62 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
     payDepositNow: true,
   });
 
+  // Calculate Dates and load remembered customer profile
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    setTodayStr(today);
+    const now = new Date();
+    const formatYMD = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+
+    const d0 = new Date(now);
+    const d1 = new Date(now);
+    d1.setDate(d0.getDate() + 1);
+    const d2 = new Date(now);
+    d2.setDate(d0.getDate() + 2);
+
+    const t0 = formatYMD(d0);
+    const t1 = formatYMD(d1);
+    const t2 = formatYMD(d2);
+
+    setTodayStr(t0);
+    setTomorrowStr(t1);
+    setDayAfterStr(t2);
+
+    let savedName = "";
+    let savedPhone = "";
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("rm_customer_profile");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          savedName = parsed.name || "";
+          savedPhone = parsed.phone || "";
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
-      date: prev.date || today,
+      date: prev.date || t0,
+      name: prev.name || savedName,
+      phone: prev.phone || savedPhone,
     }));
-  }, []);
+  }, [isClient]);
+
+  // Sync initialNote prop if passed from MenuSection
+  useEffect(() => {
+    if (initialNote) {
+      setFormData((prev) => ({
+        ...prev,
+        notes: prev.notes ? `${prev.notes} | ${initialNote}` : initialNote,
+      }));
+    }
+  }, [initialNote]);
 
   const [createdReservation, setCreatedReservation] = useState<Reservation | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
@@ -211,6 +266,25 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
     if (res.success && res.reservation) {
       setCreatedReservation(res.reservation);
 
+      // Save customer profile & active reservation code to device localStorage
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            "rm_customer_profile",
+            JSON.stringify({ name: formData.name.trim(), phone: formData.phone.trim() })
+          );
+
+          const existingRecent = localStorage.getItem("rm_recent_reservations");
+          const recentList: string[] = existingRecent ? JSON.parse(existingRecent) : [];
+          if (!recentList.includes(res.reservation.code)) {
+            recentList.unshift(res.reservation.code);
+            localStorage.setItem("rm_recent_reservations", JSON.stringify(recentList.slice(0, 5)));
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       // If user opted to pay deposit now, launch Snap immediately
       if (formData.payDepositNow) {
         await triggerMidtransSnap(res.reservation, depositAmt);
@@ -227,18 +301,25 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
     setTimeout(() => setCopied(false), 2500);
   };
 
+  const handleCopyWhatsAppSummary = () => {
+    if (!createdReservation) return;
+    const text = `*TIKET RESERVASI RASO MINANG*\n\nKode Tiket: *${createdReservation.code}*\nNama: ${createdReservation.customerName}\nTanggal: ${createdReservation.date}, ${createdReservation.time} WIB\nMeja: ${createdReservation.tableNumber} (${createdReservation.tableArea})\nJumlah Tamu: ${createdReservation.guestCount} Orang\nStatus: Terkonfirmasi Otomatis (Meja Terkunci)\n\nSampai jumpa di Restoran Raso Minang!`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
   const handleReset = () => {
     setCreatedReservation(null);
-    setFormData({
-      name: "",
-      phone: "",
+    setFormData((prev) => ({
+      ...prev,
       date: todayStr,
       time: "12:30",
       guests: 2,
       area: "Semua",
       notes: "",
       payDepositNow: true,
-    });
+    }));
     setErrorMessage("");
     setPaymentSuccessMsg("");
   };
@@ -258,41 +339,41 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
             </p>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white/80 border border-[#eadfca] shadow-sm space-y-4">
+          <div className="p-6 rounded-3xl bg-white/80 border border-[#eadfca] shadow-sm space-y-4">
             <h4 className="font-serif font-bold text-[#261b17] text-base flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#d8a43b]"></span>
-              Ketentuan & Jam Operasional
+              <span className="w-2.5 h-2.5 rounded-full bg-[#d8a43b]"></span>
+              Ketentuan & Kenyamanan Tamu
             </h4>
-            <ul className="text-xs text-[#74635c] space-y-2.5 leading-relaxed">
-              <li className="flex items-start gap-2">
-                <span className="text-[#8f1d20] font-bold">•</span>
+            <ul className="text-xs text-[#74635c] space-y-3 leading-relaxed">
+              <li className="flex items-start gap-2.5">
+                <span className="text-[#8f1d20] font-bold text-sm leading-none">•</span>
                 <span>
                   Buka setiap hari: <strong>{profile.openingHours}</strong>
                 </span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#8f1d20] font-bold">•</span>
+              <li className="flex items-start gap-2.5">
+                <span className="text-[#8f1d20] font-bold text-sm leading-none">•</span>
                 <span>
-                  Reservasi berstatus <strong>Terkonfirmasi Otomatis</strong> — sistem langsung mengunci slot meja Anda tanpa menunggu persetujuan manual.
+                  Reservasi berstatus <strong>Terkonfirmasi Otomatis</strong> — sistem langsung mengunci slot meja Anda tanpa menunggu verifikasi manual kasir.
                 </span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#8f1d20] font-bold">•</span>
+              <li className="flex items-start gap-2.5">
+                <span className="text-[#8f1d20] font-bold text-sm leading-none">•</span>
                 <span>
-                  Simpan <strong>Kode Reservasi & QR Check-in</strong> untuk ditunjukkan kepada staf saat Anda tiba di restoran.
+                  Simpan <strong>Kode Reservasi</strong> untuk ditunjukkan kepada staf saat Anda tiba di restoran.
                 </span>
               </li>
             </ul>
           </div>
 
-          <div className="p-5 rounded-2xl bg-[#8f1d20]/5 border border-[#8f1d20]/15 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#8f1d20] text-white flex items-center justify-center text-xl font-bold font-serif shrink-0">
+          <div className="p-5 rounded-3xl bg-[#8f1d20]/5 border border-[#8f1d20]/15 flex items-center gap-4 shadow-2xs">
+            <div className="w-12 h-12 rounded-2xl bg-[#8f1d20] text-white flex items-center justify-center text-xl font-bold font-serif shrink-0 shadow-sm">
               ⚡
             </div>
             <div>
-              <p className="text-xs text-[#8f1d20] font-bold uppercase tracking-wider">Pencegahan Double-Booking</p>
+              <p className="text-xs text-[#8f1d20] font-bold uppercase tracking-wider">Garansi Bebas Double-Booking</p>
               <p className="text-xs text-[#74635c]">
-                Sistem mengunci slot meja secara <strong>real-time</strong> untuk menjamin meja Anda tidak akan ditempati tamu lain pada jam tersebut.
+                Sistem mengunci slot meja secara <strong>real-time</strong> untuk menjamin meja Anda tidak akan diberikan ke tamu lain pada jam tersebut.
               </p>
             </div>
           </div>
@@ -304,7 +385,7 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
             /* Ticket Confirmation View */
             <div className="bg-white p-8 md:p-10 rounded-3xl border border-[#d8cbbb] shadow-xl shadow-[#8f1d20]/5 space-y-6">
               <div className="text-center pb-6 border-b border-dashed border-[#d8cbbb]">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-3xl mb-3">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-3xl mb-3 shadow-xs">
                   ✓
                 </div>
                 <div className="inline-block px-3 py-1 mb-2 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-extrabold uppercase tracking-wider">
@@ -319,7 +400,7 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
               </div>
 
               {/* Ticket Card Box */}
-              <div className="bg-[#fffaf0] p-6 rounded-2xl border-2 border-dashed border-[#d8a43b] text-center space-y-4">
+              <div className="bg-[#fffaf0] p-6 rounded-3xl border-2 border-dashed border-[#d8a43b] text-center space-y-4 shadow-xs">
                 <span className="text-[11px] font-bold uppercase tracking-widest text-[#74635c]">
                   KODE TIKET & E-PASS RESERVASI
                 </span>
@@ -327,9 +408,9 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                   {createdReservation.code}
                 </div>
 
-                {/* Live Status & QR Token Badge */}
+                {/* Live Status & Badges */}
                 <div className="flex flex-wrap items-center justify-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold shadow-sm">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold shadow-xs">
                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                     Status: Terkonfirmasi Otomatis (Slot Terkunci)
                   </span>
@@ -407,25 +488,33 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <div className="flex flex-wrap gap-3 pt-2">
                 <button
                   type="button"
                   onClick={handleCopyCode}
-                  className="flex-1 py-3 px-4 rounded-xl border border-[#d8cbbb] text-xs font-bold text-[#261b17] hover:bg-neutral-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 min-w-[140px] py-3 px-4 rounded-xl border border-[#d8cbbb] text-xs font-bold text-[#261b17] hover:bg-neutral-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <svg className="w-4 h-4 text-[#74635c]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
-                  <span>{copied ? "✓ Kode Tersalin!" : "Salin Kode Tiket"}</span>
+                  <span>{copied ? "✓ Tersalin!" : "Salin Kode Tiket"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCopyWhatsAppSummary}
+                  className="flex-1 min-w-[160px] py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                >
+                  <span>📲 Bagikan ke WA</span>
                 </button>
 
                 {onOpenTrackModalWithCode && (
                   <button
                     type="button"
                     onClick={() => onOpenTrackModalWithCode(createdReservation.code)}
-                    className="flex-1 py-3 px-4 rounded-xl bg-[#261b17] text-white text-xs font-bold hover:bg-[#8f1d20] transition-colors cursor-pointer text-center"
+                    className="flex-1 min-w-[160px] py-3 px-4 rounded-xl bg-[#261b17] text-white text-xs font-bold hover:bg-[#8f1d20] transition-colors cursor-pointer text-center"
                   >
-                    Lacak Status Tiket Ini →
+                    Lacak Status Tiket →
                   </button>
                 )}
 
@@ -434,7 +523,7 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                   onClick={handleReset}
                   className="py-3 px-4 rounded-xl border border-transparent text-xs font-bold text-[#74635c] hover:text-[#8f1d20] transition-colors cursor-pointer"
                 >
-                  Buat Lagi
+                  Pesan Meja Lain
                 </button>
               </div>
             </div>
@@ -449,7 +538,7 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                   Formulir Pemesanan Meja
                 </h3>
                 <p className="text-xs text-[#74635c] mt-1">
-                  Isi data di bawah ini untuk mengecek ketersediaan dan mengajukan jadwal Anda.
+                  Pilih waktu, jumlah tamu, dan preferensi area untuk reservasi instan.
                 </p>
               </div>
 
@@ -460,14 +549,87 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                 </div>
               )}
 
+              {/* 1-Tap Date Presets */}
+              <div>
+                <label className="block text-xs font-bold text-[#261b17] mb-1.5">
+                  Pilihan Cepat Tanggal
+                </label>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, date: todayStr })}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      formData.date === todayStr
+                        ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
+                        : "bg-[#fffaf0] text-[#74635c] border-[#d8cbbb] hover:border-[#8f1d20]"
+                    }`}
+                  >
+                    Hari Ini
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, date: tomorrowStr })}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      formData.date === tomorrowStr
+                        ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
+                        : "bg-[#fffaf0] text-[#74635c] border-[#d8cbbb] hover:border-[#8f1d20]"
+                    }`}
+                  >
+                    Besok
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, date: dayAfterStr })}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      formData.date === dayAfterStr
+                        ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
+                        : "bg-[#fffaf0] text-[#74635c] border-[#d8cbbb] hover:border-[#8f1d20]"
+                    }`}
+                  >
+                    Lusa
+                  </button>
+                </div>
+              </div>
+
+              {/* 1-Tap Peak Hours Presets */}
+              <div>
+                <label className="block text-xs font-bold text-[#261b17] mb-1.5">
+                  Jam Favorit Kedatangan
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                  {[
+                    { time: "12:00", label: "12:00 (Makan Siang)" },
+                    { time: "13:00", label: "13:00" },
+                    { time: "18:30", label: "18:30 (Makan Malam)" },
+                    { time: "19:30", label: "19:30" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.time}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, time: preset.time })}
+                      className={`py-1.5 px-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer truncate ${
+                        formData.time === preset.time
+                          ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
+                          : "bg-white text-[#74635c] border-[#d8cbbb] hover:border-[#8f1d20]"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Name & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#261b17] mb-1.5">
-                    Nama Lengkap <span className="text-[#8f1d20]">*</span>
+                  <label htmlFor="reservation-name" className="block text-xs font-bold text-[#261b17] mb-1.5">
+                    Nama Pemesan <span className="text-[#8f1d20]">*</span>
                   </label>
                   <input
+                    id="reservation-name"
+                    name="name"
                     type="text"
+                    autoComplete="name"
                     required
                     placeholder="Contoh: Sdr. Budi Setiawan"
                     value={formData.name}
@@ -476,12 +638,15 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#261b17] mb-1.5">
-                    Nomor WhatsApp / HP <span className="text-[#8f1d20]">*</span>
+                  <label htmlFor="reservation-phone" className="block text-xs font-bold text-[#261b17] mb-1.5">
+                    Nomor WhatsApp <span className="text-[#74635c] font-normal text-[11px]">(Opsional)</span>
                   </label>
                   <input
+                    id="reservation-phone"
+                    name="phone"
                     type="tel"
-                    required
+                    autoComplete="tel"
+                    inputMode="tel"
                     placeholder="Contoh: 081298765432"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -490,13 +655,15 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                 </div>
               </div>
 
-              {/* Date, Time, Guests */}
+              {/* Custom Date, Custom Time, Guests */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#261b17] mb-1.5">
-                    Tanggal Kedatangan <span className="text-[#8f1d20]">*</span>
+                  <label htmlFor="reservation-date" className="block text-xs font-bold text-[#261b17] mb-1.5">
+                    Pilih Tanggal Lain
                   </label>
                   <input
+                    id="reservation-date"
+                    name="date"
                     type="date"
                     required
                     min={todayStr}
@@ -506,10 +673,12 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#261b17] mb-1.5">
-                    Jam Kedatangan <span className="text-[#8f1d20]">*</span>
+                  <label htmlFor="reservation-time" className="block text-xs font-bold text-[#261b17] mb-1.5">
+                    Pilih Jam Lain
                   </label>
                   <input
+                    id="reservation-time"
+                    name="time"
                     type="time"
                     required
                     value={formData.time}
@@ -518,10 +687,12 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#261b17] mb-1.5">
+                  <label htmlFor="reservation-guests" className="block text-xs font-bold text-[#261b17] mb-1.5">
                     Jumlah Tamu <span className="text-[#8f1d20]">*</span>
                   </label>
                   <select
+                    id="reservation-guests"
+                    name="guests"
                     value={formData.guests}
                     onChange={(e) => setFormData({ ...formData, guests: Number(e.target.value) })}
                     className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#d8cbbb] focus:outline-none focus:ring-2 focus:ring-[#d8a43b] transition-all bg-white"
@@ -548,7 +719,7 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                       onClick={() => setFormData({ ...formData, area: ar })}
                       className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                         formData.area === ar
-                          ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-sm"
+                          ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
                           : "bg-white text-[#74635c] border-[#d8cbbb] hover:border-[#8f1d20]/50"
                       }`}
                     >
@@ -561,7 +732,7 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
               {/* Real-time Availability Feedback Badge */}
               {availability && (
                 <div
-                  className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 transition-all ${
+                  className={`p-3.5 rounded-2xl border text-xs flex items-start gap-2.5 transition-all shadow-2xs ${
                     availability.available
                       ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                       : "bg-amber-50 border-amber-200 text-amber-800"
@@ -574,31 +745,37 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                     <span className="font-bold block">
                       {availability.available
                         ? `Ketersediaan Terkonfirmasi (${availability.availableTables.length} Meja Siap Dipilih)`
-                        : "Meja Tidak Tersedia"}
+                        : "Meja Penuh di Jam Ini"}
                     </span>
                     <span className="opacity-90">
                       {availability.available
-                        ? `Meja ${availability.availableTables.map((t) => `${t.number} (${t.area})`).join(", ")} dapat digunakan untuk jadwal ini.`
+                        ? `Meja ${availability.availableTables.map((t) => `${t.number} (${t.area})`).join(", ")} tersedia untuk jadwal ini.`
                         : availability.reason}
                     </span>
                   </div>
                 </div>
               )}
 
-              {/* Payment Method / Deposit Selection (Customer Flow Enhancement) */}
+              {/* Payment Method / Deposit Selection */}
               <div className="pt-2 border-t border-[#f1e6d4] space-y-2">
-                <label className="block text-xs font-bold text-[#261b17]">
+                <p className="text-xs font-bold text-[#261b17]">
                   Opsi Pembayaran & Konfirmasi:
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div
-                    onClick={() => setFormData({ ...formData, payDepositNow: true })}
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                </p>
+                <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-[#d8a43b] ${
                       formData.payDepositNow
-                        ? "border-[#8f1d20] bg-[#8f1d20]/5 shadow-sm"
+                        ? "border-[#8f1d20] bg-[#8f1d20]/5 shadow-xs"
                         : "border-[#d8cbbb] bg-white hover:border-[#8f1d20]/40"
                     }`}
                   >
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={formData.payDepositNow}
+                      onChange={() => setFormData({ ...formData, payDepositNow: true })}
+                      className="sr-only"
+                    />
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-xs text-[#8f1d20] flex items-center gap-1.5">
                         <span>💳</span> Bayar Deposit (Rp 50.000)
@@ -610,16 +787,22 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                     <p className="text-[11px] text-[#74635c] leading-relaxed">
                       <strong>Konfirmasi Instan</strong> via Midtrans Snap (QRIS, GoPay, ShopeePay, Virtual Account).
                     </p>
-                  </div>
+                  </label>
 
-                  <div
-                    onClick={() => setFormData({ ...formData, payDepositNow: false })}
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+                  <label
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-[#d8a43b] ${
                       !formData.payDepositNow
-                        ? "border-[#8f1d20] bg-[#8f1d20]/5 shadow-sm"
+                        ? "border-[#8f1d20] bg-[#8f1d20]/5 shadow-xs"
                         : "border-[#d8cbbb] bg-white hover:border-[#8f1d20]/40"
                     }`}
                   >
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={!formData.payDepositNow}
+                      onChange={() => setFormData({ ...formData, payDepositNow: false })}
+                      className="sr-only"
+                    />
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-xs text-[#261b17] flex items-center gap-1.5">
                         <span>🏢</span> Bayar di Restoran
@@ -629,20 +812,22 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                       )}
                     </div>
                     <p className="text-[11px] text-[#74635c] leading-relaxed">
-                      Meja <strong>Terkunci Otomatis</strong>. Pembayaran pesanan dilakukan langsung saat bersantap di restoran.
+                      Meja <strong>Terkunci Otomatis</strong>. Pembayaran dilakukan langsung saat bersantap di restoran.
                     </p>
-                  </div>
-                </div>
+                  </label>
+                </fieldset>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-bold text-[#261b17] mb-1.5">
-                  Catatan Tambahan (Opsional)
+                <label htmlFor="reservation-notes" className="block text-xs font-bold text-[#261b17] mb-1.5">
+                  Catatan Tambahan & Permintaan Khusus (Opsional)
                 </label>
                 <textarea
+                  id="reservation-notes"
+                  name="notes"
                   rows={2}
-                  placeholder="Misal: Sediakan high chair untuk balita, request sambal ijo lebih, dll."
+                  placeholder="Misal: Request sambal ijo lebih, sediakan baby chair, ingin pesan Rendang & Ayam Pop, dll."
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="w-full px-3.5 py-2 text-sm rounded-xl border border-[#d8cbbb] focus:outline-none focus:ring-2 focus:ring-[#d8a43b] transition-all"
@@ -653,7 +838,7 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
               <button
                 type="submit"
                 disabled={(availability ? !availability.available : false) || isProcessingPayment}
-                className={`w-full py-3.5 px-6 rounded-xl font-bold text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2 ${
+                className={`w-full py-3.5 px-6 rounded-2xl font-bold text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2 ${
                   availability && !availability.available
                     ? "bg-neutral-400 cursor-not-allowed opacity-70"
                     : "bg-[#8f1d20] hover:bg-[#731518] shadow-[#8f1d20]/25 cursor-pointer hover:scale-[1.01]"
@@ -671,7 +856,7 @@ export default function ReservationSection({ onOpenTrackModalWithCode }: Reserva
                   </>
                 ) : (
                   <>
-                    <span>Ajukan Reservasi Meja</span>
+                    <span>Kunci Meja & Buat Reservasi Sekarang</span>
                     <span>→</span>
                   </>
                 )}

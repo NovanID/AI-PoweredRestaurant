@@ -65,7 +65,7 @@ export function useRestaurant() {
   const createReservation = useCallback(
     (data: {
       customerName: string;
-      customerPhone: string;
+      customerPhone?: string;
       date: string;
       time: string;
       guestCount: number;
@@ -132,6 +132,39 @@ export function useRestaurant() {
     []
   );
 
+  const createWalkInSeated = useCallback(
+    (tableId: string, guestCount?: number, actor?: string) =>
+      restaurantStore.createWalkInSeated(tableId, guestCount, actor),
+    []
+  );
+
+  const createManualOfflineBooking = useCallback(
+    (data: {
+      customerName: string;
+      customerPhone?: string;
+      tableId: string;
+      guestCount: number;
+      notes?: string;
+      actionType: 'seated_now' | 'scheduled';
+      date?: string;
+      time?: string;
+      actor?: string;
+    }) => restaurantStore.createManualOfflineBooking(data),
+    []
+  );
+
+  const addOrderItemsToReservation = useCallback(
+    (code: string, items: any[], actor?: string) =>
+      restaurantStore.addOrderItemsToReservation(code, items, actor),
+    []
+  );
+
+  const settleOfflinePayment = useCallback(
+    (code: string, paymentMethod?: string, actor?: string) =>
+      restaurantStore.settleOfflinePayment(code, paymentMethod, actor),
+    []
+  );
+
   const markAsSeated = useCallback(
     (code: string, actor?: string) =>
       restaurantStore.markAsSeated(code, actor),
@@ -175,6 +208,10 @@ export function useRestaurant() {
     updateReservationStatus,
     updatePaymentStatus,
     setReservationSnapToken,
+    createWalkInSeated,
+    createManualOfflineBooking,
+    addOrderItemsToReservation,
+    settleOfflinePayment,
     markAsSeated,
     markAsCompleted,
     markAsNoShow,

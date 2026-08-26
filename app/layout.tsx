@@ -27,7 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   const snapUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || defaultSnapUrl;
 
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
       <head>
         <Script
           id="midtrans-snap"
@@ -36,7 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           strategy="afterInteractive"
         />
       </head>
-      <body>{children}</body>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

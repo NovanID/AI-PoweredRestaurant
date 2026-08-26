@@ -2,6 +2,7 @@ import {
   RestaurantProfile,
   Table,
   MenuItem,
+  OrderItem,
   Reservation,
   AuditEvent,
   ReservationStatus,
@@ -30,11 +31,11 @@ const STORAGE_KEYS = {
 type Listener = () => void;
 
 class RestaurantStore {
-  private profile: RestaurantProfile = { ...initialRestaurantProfile };
-  private tables: Table[] = [...initialTables];
-  private menu: MenuItem[] = [...initialMenuItems];
-  private reservations: Reservation[] = [...initialReservations];
-  private auditEvents: AuditEvent[] = [...initialAuditEvents];
+  private profile: RestaurantProfile = JSON.parse(JSON.stringify(initialRestaurantProfile));
+  private tables: Table[] = JSON.parse(JSON.stringify(initialTables));
+  private menu: MenuItem[] = JSON.parse(JSON.stringify(initialMenuItems));
+  private reservations: Reservation[] = JSON.parse(JSON.stringify(initialReservations));
+  private auditEvents: AuditEvent[] = JSON.parse(JSON.stringify(initialAuditEvents));
   private listeners: Set<Listener> = new Set();
   private isInitialized = false;
 
@@ -252,7 +253,7 @@ class RestaurantStore {
   // --- Reservation Methods ---
   public createReservation(data: {
     customerName: string;
-    customerPhone: string;
+    customerPhone?: string;
     date: string;
     time: string;
     guestCount: number;
@@ -269,7 +270,7 @@ class RestaurantStore {
   } {
     const {
       customerName,
-      customerPhone,
+      customerPhone = '-',
       date,
       time,
       guestCount,
@@ -281,7 +282,7 @@ class RestaurantStore {
       actor = 'Sistem Reservasi Otomatis',
     } = data;
 
-    if (!customerName || !customerPhone || !date || !time || !guestCount) {
+    if (!customerName || !date || !time || !guestCount) {
       return { success: false, message: 'Mohon lengkapi semua data reservasi yang wajib diisi.' };
     }
 
@@ -307,7 +308,7 @@ class RestaurantStore {
       id: `res-${Date.now()}`,
       code,
       customerName,
-      customerPhone,
+      customerPhone: customerPhone?.trim() || '-',
       tableId: selectedTable.id,
       tableNumber: selectedTable.number,
       tableArea: selectedTable.area,
@@ -467,6 +468,192 @@ class RestaurantStore {
   }
 
   // --- Operational Floor & Guest Lifecycle Methods ---
+  public createWalkInSeated(
+    tableId: string,
+    guestCount?: number,
+    actor: string = 'Staff Kasir (Budi)'
+  ): { success: boolean; message: string; reservation?: Reservation } {
+    const table = this.tables.find((t) => t.id === tableId);
+    if (!table) {
+      return { success: false, message: 'Meja tidak ditemukan.' };
+    }
+    if (table.status === 'maintenance') {
+      return { success: false, message: `Meja ${table.number} sedang dalam masa perbaikan/maintenance.` };
+    }
+
+    // Set table status to occupied
+    table.status = 'occupied';
+
+    const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const code = `WI-${randomChars}`;
+    const qrToken = `QR-${code}-WALKIN`;
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+
+    const newReservation: Reservation = {
+      id: `res-walkin-${Date.now()}`,
+      code,
+      customerName: `Tamu Walk-In (${table.number})`,
+      customerPhone: '-',
+      tableId: table.id,
+      tableNumber: table.number,
+      tableArea: table.area,
+      date: dateStr,
+      time: timeStr,
+      guestCount: guestCount || table.capacity,
+      status: 'seated',
+      autoConfirmed: true,
+      qrToken,
+      seatedAt: now.toISOString(),
+      paymentStatus: 'unpaid',
+      notes: 'Tamu langsung datang tanpa reservasi (Walk-In)',
+      tenantId: this.profile.tenantId || DEFAULT_TENANT_ID,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+
+    this.reservations.unshift(newReservation);
+    this.recordAudit(
+      actor,
+      'WALK_IN_SEATED',
+      `Meja ${table.number}`,
+      `Tamu Walk-In (${newReservation.guestCount} orang) dipersilakan duduk di Meja ${table.number} (Kode: ${code}).`
+    );
+    this.persist();
+
+    return {
+      success: true,
+      message: `Tamu Walk-In berhasil didudukkan di Meja ${table.number}. Status meja menjadi Terisi (Seated).`,
+      reservation: { ...newReservation },
+    };
+  }
+
+  public createManualOfflineBooking(data: {
+    customerName: string;
+    customerPhone?: string;
+    tableId: string;
+    guestCount: number;
+    notes?: string;
+    actionType: 'seated_now' | 'scheduled';
+    date?: string;
+    time?: string;
+    actor?: string;
+  }): { success: boolean; message: string; reservation?: Reservation } {
+    const table = this.tables.find((t) => t.id === data.tableId);
+    if (!table) return { success: false, message: 'Meja tidak ditemukan.' };
+    if (table.status === 'maintenance') {
+      return { success: false, message: `Meja ${table.number} sedang maintenance/rusak.` };
+    }
+
+    const now = new Date();
+    const isSeatedNow = data.actionType === 'seated_now';
+    const dateStr = data.date || now.toISOString().split('T')[0];
+    const timeStr = data.time || now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+    const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const code = isSeatedNow ? `WI-${randomChars}` : `RM-M${randomChars}`;
+
+    if (isSeatedNow) {
+      table.status = 'occupied';
+    }
+
+    const newReservation: Reservation = {
+      id: `res-manual-${Date.now()}`,
+      code,
+      customerName: data.customerName.trim() || `Tamu Offline (${table.number})`,
+      customerPhone: data.customerPhone?.trim() || '-',
+      tableId: table.id,
+      tableNumber: table.number,
+      tableArea: table.area,
+      date: dateStr,
+      time: timeStr,
+      guestCount: data.guestCount || table.capacity,
+      status: isSeatedNow ? 'seated' : 'confirmed',
+      autoConfirmed: true,
+      qrToken: `QR-${code}-OFFLINE`,
+      seatedAt: isSeatedNow ? now.toISOString() : undefined,
+      paymentStatus: 'unpaid',
+      notes: data.notes || (isSeatedNow ? 'Tamu Walk-In Kasir Offline' : 'Reservasi Manual Kasir'),
+      tenantId: this.profile.tenantId || DEFAULT_TENANT_ID,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+
+    this.reservations.unshift(newReservation);
+    this.recordAudit(
+      data.actor || 'Staf Kasir Offline',
+      isSeatedNow ? 'MANUAL_WALKIN_SEATED' : 'MANUAL_RESERVATION_CREATED',
+      `Meja ${table.number}`,
+      `Input tamu manual (${newReservation.customerName}, ${newReservation.guestCount} orang, ${newReservation.status}) di Meja ${table.number}.`
+    );
+    this.persist();
+
+    return {
+      success: true,
+      message: `Tamu ${newReservation.customerName} berhasil dicatat di Meja ${table.number} (Kode: ${code}).`,
+      reservation: { ...newReservation },
+    };
+  }
+
+  public addOrderItemsToReservation(
+    code: string,
+    items: OrderItem[],
+    actor: string = 'Staf Kasir'
+  ): { success: boolean; message: string; reservation?: Reservation } {
+    const clean = code.trim().toUpperCase();
+    const target = this.reservations.find((r) => r.code.toUpperCase() === clean);
+    if (!target) return { success: false, message: `Tiket tamu ${code} tidak ditemukan.` };
+
+    target.orderItems = items;
+    const total = items.reduce((sum, it) => sum + it.price * it.quantity, 0);
+    target.orderTotal = total;
+    target.paymentAmount = total;
+    target.updatedAt = new Date().toISOString();
+
+    this.recordAudit(
+      actor,
+      'UPDATE_TABLE_ORDER',
+      `Reservasi ${target.code}`,
+      `Pesanan ${items.length} menu ditambahkan ke Meja ${target.tableNumber}. Total Tagihan: Rp ${total.toLocaleString('id-ID')}`
+    );
+    this.persist();
+
+    return {
+      success: true,
+      message: `Pesanan Meja ${target.tableNumber} berhasil disimpan (Total: Rp ${total.toLocaleString('id-ID')}).`,
+      reservation: { ...target },
+    };
+  }
+
+  public settleOfflinePayment(
+    code: string,
+    paymentMethod: string = 'Tunai / Cash',
+    actor: string = 'Staf Kasir'
+  ): { success: boolean; message: string; reservation?: Reservation } {
+    const clean = code.trim().toUpperCase();
+    const target = this.reservations.find((r) => r.code.toUpperCase() === clean);
+    if (!target) return { success: false, message: `Tiket tamu ${code} tidak ditemukan.` };
+
+    target.paymentStatus = 'settlement';
+    target.paymentMethod = paymentMethod;
+    target.paymentPaidAt = new Date().toISOString();
+    target.updatedAt = new Date().toISOString();
+
+    this.recordAudit(
+      actor,
+      'OFFLINE_PAYMENT_SETTLED',
+      `Reservasi ${target.code}`,
+      `Pembayaran pesanan Rp ${(target.orderTotal || target.paymentAmount || 0).toLocaleString('id-ID')} lunas via ${paymentMethod}.`
+    );
+    this.persist();
+
+    return {
+      success: true,
+      message: `Pembayaran tiket ${target.code} (Meja ${target.tableNumber}) BERHASIL LUNAS via ${paymentMethod}.`,
+      reservation: { ...target },
+    };
+  }
+
   public markAsSeated(
     code: string,
     actor: string = 'Staf Penerima Tamu'
@@ -764,11 +951,11 @@ class RestaurantStore {
 
   // Reset to initial mock data (for testing/demo purposes)
   public resetToDefaults() {
-    this.profile = { ...initialRestaurantProfile };
-    this.tables = [...initialTables];
-    this.menu = [...initialMenuItems];
-    this.reservations = [...initialReservations];
-    this.auditEvents = [...initialAuditEvents];
+    this.profile = JSON.parse(JSON.stringify(initialRestaurantProfile));
+    this.tables = JSON.parse(JSON.stringify(initialTables));
+    this.menu = JSON.parse(JSON.stringify(initialMenuItems));
+    this.reservations = JSON.parse(JSON.stringify(initialReservations));
+    this.auditEvents = JSON.parse(JSON.stringify(initialAuditEvents));
     this.persist();
   }
 }

@@ -10,7 +10,17 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TYPE table_area_enum AS ENUM ('Indoor', 'Outdoor', 'VIP');
 CREATE TYPE table_status_enum AS ENUM ('available', 'occupied', 'reserved', 'maintenance');
 CREATE TYPE menu_category_enum AS ENUM ('Lauk Utama', 'Sayur & Kuah', 'Pelengkap & Sambal', 'Minuman');
-CREATE TYPE reservation_status_enum AS ENUM ('pending', 'confirmed', 'rejected', 'cancelled');
+CREATE TYPE reservation_status_enum AS ENUM (
+    'pending',
+    'confirmed',
+    'seated',
+    'completed',
+    'cancelled',
+    'rejected',
+    'no_show',
+    'expired'
+);
+CREATE TYPE payment_status_enum AS ENUM ('unpaid', 'pending', 'settlement', 'expire', 'cancel');
 
 -- 3. Restaurants / Tenant Table
 CREATE TABLE restaurants (
@@ -71,10 +81,7 @@ CREATE TABLE customers (
     CONSTRAINT unique_tenant_customer_phone UNIQUE (tenant_id, phone)
 );
 
--- 4. Enums
-CREATE TYPE payment_status_enum AS ENUM ('unpaid', 'pending', 'settlement', 'expire', 'cancel');
-
--- 7. Reservations (With Anti-Double Booking Prevention & Payment Integration)
+-- 7. Reservations (With Anti-Double Booking Prevention & Operational Floor Tracking)
 CREATE TABLE reservations (
     id VARCHAR(64) PRIMARY KEY,
     tenant_id VARCHAR(64) NOT NULL REFERENCES restaurants(tenant_id) ON DELETE CASCADE,
@@ -87,7 +94,12 @@ CREATE TABLE reservations (
     reservation_date DATE NOT NULL,
     reservation_time TIME NOT NULL,
     guest_count INT NOT NULL CHECK (guest_count > 0),
-    status reservation_status_enum NOT NULL DEFAULT 'pending',
+    status reservation_status_enum NOT NULL DEFAULT 'confirmed',
+    auto_confirmed BOOLEAN NOT NULL DEFAULT TRUE,
+    qr_token VARCHAR(255),
+    seated_at TIMESTAMP WITH TIME ZONE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    expires_at TIMESTAMP WITH TIME ZONE,
     payment_status payment_status_enum NOT NULL DEFAULT 'unpaid',
     payment_amount DECIMAL(12, 2),
     payment_method VARCHAR(64),

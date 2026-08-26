@@ -26,6 +26,8 @@ export default function TrackReservationModal({
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [searched, setSearched] = useState(false);
   const [activeAction, setActiveAction] = useState<"view" | "reschedule" | "cancel">("view");
+  const [recentCodes, setRecentCodes] = useState<string[]>([]);
+  const [copiedSummary, setCopiedSummary] = useState(false);
 
   // Phone verification for actions
   const [phoneVerify, setPhoneVerify] = useState("");
@@ -45,12 +47,33 @@ export default function TrackReservationModal({
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
 
+  const normalizeCode = (raw: string) => {
+    let clean = raw.trim().replace(/\s+/g, "").toUpperCase();
+    if (/^[A-Z]{2}\d+$/.test(clean)) {
+      clean = `${clean.slice(0, 2)}-${clean.slice(2)}`;
+    }
+    return clean;
+  };
+
   useEffect(() => {
     if (!isOpen) return;
 
+    // Load recent codes from local storage
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("rm_recent_reservations");
+        if (stored) {
+          setRecentCodes(JSON.parse(stored));
+        }
+      } catch {
+        setRecentCodes([]);
+      }
+    }
+
     if (initialCode) {
-      setCodeQuery(initialCode);
-      const res = getReservationByCode(initialCode);
+      const norm = normalizeCode(initialCode);
+      setCodeQuery(norm);
+      const res = getReservationByCode(norm);
       setReservation(res || null);
       if (res) {
         setRescheduleData({
@@ -76,15 +99,16 @@ export default function TrackReservationModal({
 
   if (!isOpen) return null;
 
-  const handleSearch = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const executeLookup = (codeToSearch: string) => {
     setActionMessage("");
     setActionError("");
     setActiveAction("view");
     setVerifyError("");
-    if (!codeQuery.trim()) return;
+    const norm = normalizeCode(codeToSearch);
+    if (!norm) return;
 
-    const res = getReservationByCode(codeQuery.trim());
+    setCodeQuery(norm);
+    const res = getReservationByCode(norm);
     setReservation(res || null);
     if (res) {
       setRescheduleData({
@@ -98,12 +122,38 @@ export default function TrackReservationModal({
     setSearched(true);
   };
 
+  const handleSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    executeLookup(codeQuery);
+  };
+
+  const hasRegisteredPhone = Boolean(
+    reservation?.customerPhone &&
+    reservation.customerPhone !== "-" &&
+    reservation.customerPhone.replace(/\D/g, "").length >= 4
+  );
+
   const isPhoneValid = () => {
     if (!reservation) return false;
+    if (!hasRegisteredPhone) return true; // No phone registered, permit action with reservation code alone
     const cleanInput = phoneVerify.trim().replace(/\D/g, "");
     const cleanPhone = reservation.customerPhone.replace(/\D/g, "");
     if (cleanInput.length < 4) return false;
     return cleanPhone.endsWith(cleanInput) || cleanPhone === cleanInput;
+  };
+
+  const handleShareToWhatsApp = () => {
+    if (!reservation) return;
+    const text = `*TIKET RESERVASI RASO MINANG*\n\nKode Tiket: *${reservation.code}*\nNama: ${reservation.customerName}\nTanggal: ${reservation.date}, ${reservation.time} WIB\nMeja: ${reservation.tableNumber} (${reservation.tableArea})\nJumlah Tamu: ${reservation.guestCount} Orang\nStatus: ${reservation.status}\n\nSampai jumpa di Restoran Raso Minang!`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  const handleCopySummary = () => {
+    if (!reservation) return;
+    const text = `TIKET RESERVASI RASO MINANG\nKode Tiket: ${reservation.code}\nNama: ${reservation.customerName}\nTanggal: ${reservation.date}, ${reservation.time} WIB\nMeja: ${reservation.tableNumber} (${reservation.tableArea})\nJumlah Tamu: ${reservation.guestCount} Orang\nStatus: ${reservation.status}`;
+    navigator.clipboard.writeText(text);
+    setCopiedSummary(true);
+    setTimeout(() => setCopiedSummary(false), 2500);
   };
 
   const handleCancelReservation = () => {
@@ -362,11 +412,11 @@ export default function TrackReservationModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-3xl border border-[#d8cbbb] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-3xl border border-[#d8cbbb] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90dvh]" role="dialog" aria-modal="true" aria-labelledby="track-reservation-title">
         {/* Header */}
         <div className="p-6 border-b border-[#f1e6d4] flex items-center justify-between bg-[#fffaf0]">
           <div>
-            <h3 className="font-serif text-xl font-bold text-[#8f1d20]">
+            <h3 id="track-reservation-title" className="font-serif text-xl font-bold text-[#8f1d20]">
               Lacak & Kelola Reservasi
             </h3>
             <p className="text-xs text-[#74635c]">
@@ -375,25 +425,51 @@ export default function TrackReservationModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Tutup pelacakan reservasi"
             className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-[#74635c] text-sm cursor-pointer transition-colors"
           >
             ✕
           </button>
         </div>
 
-        {/* Search Input */}
+        {/* Search Input & Recent Bookings */}
         <div className="p-6 space-y-4 overflow-y-auto">
+          {recentCodes.length > 0 && (
+            <div>
+              <span className="block text-[11px] font-bold text-[#74635c] mb-1.5">
+                Tiket Terbaru di Perangkat Ini:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {recentCodes.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => executeLookup(code)}
+                    className={`px-3 py-1 rounded-full text-xs font-mono font-bold border transition-all cursor-pointer ${
+                      codeQuery === code
+                        ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
+                        : "bg-[#fffaf0] text-[#8f1d20] border-[#d8a43b]/40 hover:bg-[#8f1d20] hover:text-white"
+                    }`}
+                  >
+                    🎟️ {code}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSearch} className="flex gap-2">
             <input
               type="text"
-              placeholder="Kode Tiket (e.g. RM-1001)"
+              aria-label="Kode reservasi"
+              placeholder="Kode Tiket (misal: RM-1001 atau RM1001)"
               value={codeQuery}
               onChange={(e) => setCodeQuery(e.target.value)}
               className="flex-1 px-4 py-2.5 rounded-xl border border-[#d8cbbb] text-sm font-semibold uppercase focus:outline-none focus:ring-2 focus:ring-[#d8a43b]"
             />
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-[#8f1d20] text-white text-xs font-bold hover:bg-[#731518] transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-[#8f1d20] text-white text-xs font-bold hover:bg-[#731518] transition-colors cursor-pointer shrink-0 shadow-xs"
             >
               Cari Tiket
             </button>
@@ -415,7 +491,7 @@ export default function TrackReservationModal({
           {searched && (
             <div>
               {reservation ? (
-                <div className="bg-[#fffaf0] p-5 rounded-2xl border border-[#eadfca] space-y-4">
+                <div className="bg-[#fffaf0] p-5 rounded-3xl border border-[#eadfca] space-y-4 shadow-xs">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-serif text-2xl font-bold text-[#8f1d20] block">
@@ -431,6 +507,31 @@ export default function TrackReservationModal({
                   {/* Mode: Default View */}
                   {activeAction === "view" && (
                     <>
+                      {/* Visual Progress Steps for Active Bookings */}
+                      {(reservation.status === "pending" ||
+                        reservation.status === "confirmed" ||
+                        reservation.status === "seated" ||
+                        reservation.status === "completed") && (
+                        <div className="py-2.5 px-3 bg-white rounded-2xl border border-[#eadfca]/80 my-1">
+                          <div className="flex items-center justify-between text-[11px] font-bold">
+                            <div className="flex items-center gap-1 text-[#8f1d20]">
+                              <span className="w-4 h-4 rounded-full bg-[#8f1d20] text-white text-[10px] flex items-center justify-center">1</span>
+                              <span>Terkonfirmasi</span>
+                            </div>
+                            <span className="text-neutral-300">→</span>
+                            <div className={`flex items-center gap-1 ${reservation.status === "seated" || reservation.status === "completed" ? "text-[#8f1d20]" : "text-neutral-400"}`}>
+                              <span className={`w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center ${reservation.status === "seated" || reservation.status === "completed" ? "bg-[#8f1d20]" : "bg-neutral-300"}`}>2</span>
+                              <span>Duduk (Seated)</span>
+                            </div>
+                            <span className="text-neutral-300">→</span>
+                            <div className={`flex items-center gap-1 ${reservation.status === "completed" ? "text-emerald-700" : "text-neutral-400"}`}>
+                              <span className={`w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center ${reservation.status === "completed" ? "bg-emerald-600" : "bg-neutral-300"}`}>3</span>
+                              <span>Selesai</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t border-[#eadfca]">
                         <div>
                           <span className="text-[#74635c] block">Nama Pemesan</span>
@@ -439,7 +540,9 @@ export default function TrackReservationModal({
                         <div>
                           <span className="text-[#74635c] block">Kontak</span>
                           <strong className="text-[#261b17]">
-                            {reservation.customerPhone.slice(0, 4)}****{reservation.customerPhone.slice(-4)}
+                            {hasRegisteredPhone
+                              ? `${reservation.customerPhone.slice(0, 4)}****${reservation.customerPhone.slice(-4)}`
+                              : "Tidak dicantumkan"}
                           </strong>
                         </div>
                         <div>
@@ -507,6 +610,24 @@ export default function TrackReservationModal({
                             </button>
                           </div>
                         )}
+
+                      {/* Quick Share to WA / Copy Details */}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleShareToWhatsApp}
+                          className="flex-1 min-w-[130px] py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                        >
+                          <span>📲 Bagikan ke WA</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCopySummary}
+                          className="flex-1 min-w-[130px] py-2 px-3 rounded-xl bg-white border border-[#d8cbbb] text-[#261b17] hover:bg-neutral-50 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <span>{copiedSummary ? "✓ Tersalin!" : "📋 Salin Ringkasan"}</span>
+                        </button>
+                      </div>
 
                       {/* Action Buttons */}
                       {(reservation.status === "pending" || reservation.status === "confirmed") && (
@@ -602,22 +723,24 @@ export default function TrackReservationModal({
                         </div>
                       </div>
 
-                      {/* Security phone verification */}
-                      <div className="pt-2 border-t border-dashed border-[#eadfca]">
-                        <label className="block text-xs font-bold text-[#8f1d20] mb-1">
-                          Verifikasi Keamanan (4 Digit Terakhir No. WhatsApp):
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={4}
-                          placeholder="Misal: 5432"
-                          value={phoneVerify}
-                          onChange={(e) => setPhoneVerify(e.target.value)}
-                          className="w-full p-2 bg-white rounded-lg border border-[#d8cbbb] text-xs font-mono"
-                          required
-                        />
-                        {verifyError && <p className="text-[11px] text-red-600 mt-1">{verifyError}</p>}
-                      </div>
+                      {/* Security phone verification (only if registered) */}
+                      {hasRegisteredPhone && (
+                        <div className="pt-2 border-t border-dashed border-[#eadfca]">
+                          <label className="block text-xs font-bold text-[#8f1d20] mb-1">
+                            Verifikasi Keamanan (4 Digit Terakhir No. WhatsApp):
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={4}
+                            placeholder="Misal: 5432"
+                            value={phoneVerify}
+                            onChange={(e) => setPhoneVerify(e.target.value)}
+                            className="w-full p-2 bg-white rounded-lg border border-[#d8cbbb] text-xs font-mono"
+                            required
+                          />
+                          {verifyError && <p className="text-[11px] text-red-600 mt-1">{verifyError}</p>}
+                        </div>
+                      )}
 
                       <div className="flex gap-2 pt-2">
                         <button
@@ -664,21 +787,23 @@ export default function TrackReservationModal({
                         />
                       </div>
 
-                      {/* Security phone verification */}
-                      <div>
-                        <label className="block text-[11px] font-bold text-red-800 mb-1">
-                          Verifikasi: Masukkan 4 Digit Terakhir No. WhatsApp Pemesan:
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={4}
-                          placeholder="Misal: 5432"
-                          value={phoneVerify}
-                          onChange={(e) => setPhoneVerify(e.target.value)}
-                          className="w-full px-3 py-1.5 text-xs bg-white rounded-lg border border-red-300 font-mono"
-                        />
-                        {verifyError && <p className="text-[11px] text-red-700 mt-1">{verifyError}</p>}
-                      </div>
+                      {/* Security phone verification (only if registered) */}
+                      {hasRegisteredPhone && (
+                        <div>
+                          <label className="block text-[11px] font-bold text-red-800 mb-1">
+                            Verifikasi: Masukkan 4 Digit Terakhir No. WhatsApp Pemesan:
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={4}
+                            placeholder="Misal: 5432"
+                            value={phoneVerify}
+                            onChange={(e) => setPhoneVerify(e.target.value)}
+                            className="w-full px-3 py-1.5 text-xs bg-white rounded-lg border border-red-300 font-mono"
+                          />
+                          {verifyError && <p className="text-[11px] text-red-700 mt-1">{verifyError}</p>}
+                        </div>
+                      )}
 
                       <div className="flex gap-2 pt-1">
                         <button

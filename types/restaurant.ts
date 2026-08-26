@@ -52,9 +52,16 @@ export type ReservationStatus =
 
 export type PaymentStatus = 'unpaid' | 'pending' | 'settlement' | 'expire' | 'cancel';
 
+export interface OrderItem {
+  menuItemId: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 export interface Reservation {
   id: string;
-  code: string; // e.g. "RM-1024"
+  code: string; // e.g. "RM-1024" or "WI-1024"
   customerName: string;
   customerPhone: string;
   tableId: string;
@@ -74,6 +81,8 @@ export interface Reservation {
   paymentMethod?: string;
   snapToken?: string;
   paymentPaidAt?: string;
+  orderItems?: OrderItem[];
+  orderTotal?: number;
   notes?: string;
   rejectionReason?: string;
   tenantId: TenantId;

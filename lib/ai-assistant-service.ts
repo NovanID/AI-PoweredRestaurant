@@ -162,9 +162,10 @@ export async function processAIChat(
         expired: '⏱️ Kadaluarsa (Expired)',
       };
       const currentStatusText = statusIndo[r.status] || r.status;
+      const contactDisplay = r.customerPhone && r.customerPhone !== '-' ? r.customerPhone : '(Tidak dicantumkan)';
 
       return {
-        reply: `📋 **Status Reservasi ${r.code}:**\n\n- **Nama Pemesan:** ${r.customerName}\n- **Kontak:** ${r.customerPhone}\n- **Tanggal & Waktu:** ${r.date} jam ${r.time} WIB\n- **Meja:** ${r.tableNumber} (${r.tableArea})\n- **Jumlah Tamu:** ${r.guestCount} Orang\n- **Status Terkini:** ${currentStatusText}${r.notes ? `\n- **Catatan:** ${r.notes}` : ''}${r.rejectionReason ? `\n- **Keterangan:** ${r.rejectionReason}` : ''}`,
+        reply: `📋 **Status Reservasi ${r.code}:**\n\n- **Nama Pemesan:** ${r.customerName}\n- **Kontak:** ${contactDisplay}\n- **Tanggal & Waktu:** ${r.date} jam ${r.time} WIB\n- **Meja:** ${r.tableNumber} (${r.tableArea})\n- **Jumlah Tamu:** ${r.guestCount} Orang\n- **Status Terkini:** ${currentStatusText}${r.notes ? `\n- **Catatan:** ${r.notes}` : ''}${r.rejectionReason ? `\n- **Keterangan:** ${r.rejectionReason}` : ''}`,
         toolCall: { name: 'get_reservation', params: { code }, result: res },
         actionButtons:
           r.status === 'pending' || r.status === 'confirmed'
@@ -353,7 +354,7 @@ export async function processAIChat(
     const phoneMatch = text.match(/(?:08\d{8,11}|628\d{8,11})/);
 
     const customerName = nameMatch ? nameMatch[1].trim() : 'Customer';
-    const customerPhone = phoneMatch ? phoneMatch[0] : '081234567890';
+    const customerPhone = phoneMatch ? phoneMatch[0] : '-';
 
     const pendingData = {
       customerName,
@@ -365,8 +366,10 @@ export async function processAIChat(
       notes: 'Diajukan via AI Assistant',
     };
 
+    const contactDisplay = customerPhone !== '-' ? `\n- **Kontak (WA):** ${customerPhone}` : '';
+
     return {
-      reply: `✨ **Meja Tersedia & Siap Dikunci!**\n\nKami menemukan meja yang cocok untuk **${guests} orang** pada tanggal **${date}** pukul **${time} WIB** (${avail.data.availableTables.length} pilihan meja tersedia).\n\nApakah Anda ingin sistem langsung mengonfirmasi dan mengunci meja ini untuk Anda?\n- **Nama:** ${customerName}\n- **Kontak:** ${customerPhone}\n- **Waktu:** ${date}, ${time} WIB\n- **Jumlah:** ${guests} Orang\n\nKetik **"Ya, Konfirmasi"** untuk menerbitkan tiket reservasi instan (*Auto-Confirmed by System*).`,
+      reply: `✨ **Meja Tersedia & Siap Dikunci!**\n\nKami menemukan meja yang cocok untuk **${guests} orang** pada tanggal **${date}** pukul **${time} WIB** (${avail.data.availableTables.length} pilihan meja tersedia).\n\nApakah Anda ingin sistem langsung mengonfirmasi dan mengunci meja ini untuk Anda?\n- **Nama:** ${customerName}${contactDisplay}\n- **Waktu:** ${date}, ${time} WIB\n- **Jumlah:** ${guests} Orang\n\nKetik **"Ya, Konfirmasi"** untuk menerbitkan tiket reservasi instan (*Auto-Confirmed by System*).`,
       toolCall: {
         name: 'check_availability',
         params: { date, time, guestCount: guests, preferredArea: area },

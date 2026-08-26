@@ -12,10 +12,17 @@ export default function Home() {
   const { profile } = useRestaurant();
   const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
   const [trackCode, setTrackCode] = useState("");
+  const [initialReservationNote, setInitialReservationNote] = useState("");
 
   const handleOpenTrackWithCode = (code: string) => {
     setTrackCode(code);
     setIsTrackModalOpen(true);
+  };
+
+  const handleSelectMenuForReservation = (dishName: string) => {
+    setInitialReservationNote(`Ingin memesan menu favorit: ${dishName}`);
+    const el = document.getElementById("reservasi");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -25,11 +32,16 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="hero shell py-16 md:py-24" id="top">
+        <section className="hero shell grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-16 md:py-24" id="top">
           <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#8f1d20]/10 border border-[#8f1d20]/20 text-[#8f1d20] text-xs font-extrabold uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-[#8f1d20]"></span>
-              Warisan Kuliner Minangkabau Asli
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#8f1d20]/10 border border-[#8f1d20]/20 text-[#8f1d20] text-xs font-extrabold uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-[#8f1d20]"></span>
+                Warisan Kuliner Minangkabau Asli
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                <span>🟢</span> 100% Halal
+              </div>
             </div>
 
             <h1 className="font-serif font-bold text-4xl sm:text-6xl lg:text-7xl leading-[1.05] text-[#261b17] tracking-tight">
@@ -118,10 +130,13 @@ export default function Home() {
         </section>
 
         {/* Menu Catalog Section */}
-        <MenuSection />
+        <MenuSection onSelectMenuItem={handleSelectMenuForReservation} />
 
         {/* Interactive Reservation Section */}
-        <ReservationSection onOpenTrackModalWithCode={handleOpenTrackWithCode} />
+        <ReservationSection
+          onOpenTrackModalWithCode={handleOpenTrackWithCode}
+          initialNote={initialReservationNote}
+        />
       </main>
 
       {/* Footer */}
