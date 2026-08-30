@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRestaurant } from "../lib/use-restaurant";
 import { ReservationStatus, TableStatus, OrderItem } from "../types/restaurant";
+import AIChatMonitoringTab from "./AIChatMonitoringTab";
 
-type AdminTab = "reservations" | "tables" | "pos" | "menu" | "audit";
+type AdminTab = "reservations" | "tables" | "pos" | "menu" | "audit" | "ai_monitoring";
 
 export default function AdminDashboard() {
   const {
@@ -465,6 +466,20 @@ export default function AdminDashboard() {
             }`}
           >
             <span>Audit Trail ({auditEvents.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("ai_monitoring")}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === "ai_monitoring"
+                ? "bg-gradient-to-r from-[#261b17] to-[#8f1d20] text-white shadow-md shadow-[#8f1d20]/30 border border-[#d8a43b]/40"
+                : "bg-gradient-to-r from-[#fffaf0] to-white text-[#8f1d20] border border-[#d8a43b]/60 hover:bg-[#8f1d20] hover:text-white"
+            }`}
+          >
+            <span>🤖 Kontrol & Monitoring AI</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-emerald-500 text-white text-[9px] font-extrabold animate-pulse">
+              LIVE
+            </span>
           </button>
         </div>
 
@@ -1395,6 +1410,9 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {/* Tab 5: AI Intelligence & Live Monitoring */}
+        {activeTab === "ai_monitoring" && <AIChatMonitoringTab />}
 
         {/* Printable Thermal Receipt Modal */}
         {receiptModal?.isOpen && (
