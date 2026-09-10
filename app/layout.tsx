@@ -5,6 +5,14 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Raso Minang — Restoran Padang",
   description: "Menu dan reservasi restoran Padang Raso Minang dengan Payment Gateway Midtrans.",
+  icons: {
+    icon: [
+      { url: "/logo-crest.jpg", type: "image/jpeg" },
+      { url: "/favicon.ico" }
+    ],
+    shortcut: "/logo-crest.jpg",
+    apple: "/logo-crest.jpg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -29,6 +37,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/logo-crest.jpg" type="image/jpeg" />
+        <link rel="shortcut icon" href="/logo-crest.jpg" type="image/jpeg" />
+        <link rel="apple-touch-icon" href="/logo-crest.jpg" />
         <Script
           id="midtrans-snap"
           src={snapUrl}

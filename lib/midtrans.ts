@@ -1,3 +1,4 @@
+
 import crypto from 'crypto';
 
 export interface MidtransConfig {
@@ -48,12 +49,16 @@ export function getMidtransConfig(): MidtransConfig {
     ''
   ).trim();
 
-  // If explicit env set, respect it; otherwise check key prefix
-  const isExplicitProd = process.env.MIDTRANS_IS_PRODUCTION === 'true';
-  const isExplicitSandbox = process.env.MIDTRANS_IS_PRODUCTION === 'false';
-  const isProduction = isExplicitSandbox
-    ? false
-    : isExplicitProd || (serverKey.startsWith('Mid-server-') && !serverKey.startsWith('SB-'));
+  // Environment detection:
+  // 1. Explicit MIDTRANS_IS_PRODUCTION flag takes highest priority
+  // 2. Legacy SB- prefix is always sandbox
+  // 3. Default to sandbox (false) for safety during development
+  let isProduction = false;
+  if (process.env.MIDTRANS_IS_PRODUCTION !== undefined && process.env.MIDTRANS_IS_PRODUCTION !== '') {
+    isProduction = process.env.MIDTRANS_IS_PRODUCTION === 'true';
+  } else if (serverKey.startsWith('SB-') || clientKey.startsWith('SB-')) {
+    isProduction = false;
+  }
 
   const snapUrl = isProduction
     ? 'https://app.midtrans.com/snap/snap.js'
@@ -79,6 +84,13 @@ export async function createSnapTransaction(
   params: CreateSnapTransactionParams
 ): Promise<SnapTransactionResponse> {
   const config = getMidtransConfig();
+
+  if (!config.serverKey) {
+    throw new Error(
+      'MIDTRANS_SERVER_KEY belum diisi di .env.local. Masukkan Server Key dari https://dashboard.sandbox.midtrans.com.'
+    );
+  }
+
   const endpoint = config.isProduction
     ? 'https://app.midtrans.com/snap/v1/transactions'
     : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
@@ -116,21 +128,6 @@ export async function createSnapTransaction(
     credit_card: {
       secure: true,
     },
-    enabled_payments: [
-      'credit_card',
-      'gopay',
-      'shopeepay',
-      'qris',
-      'bca_va',
-      'bni_va',
-      'bri_va',
-      'mandiri_va',
-      'permata_va',
-      'other_va',
-      'indomaret',
-      'alfamart',
-      'akulaku',
-    ],
     usage_limit: 5,
   };
 

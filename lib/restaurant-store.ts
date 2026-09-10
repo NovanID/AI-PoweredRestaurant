@@ -345,6 +345,83 @@ class RestaurantStore {
     };
   }
 
+  public createTakeawayOrder(data: {
+    customerName?: string;
+    customerPhone?: string;
+    items: OrderItem[];
+    subtotal: number;
+    tax: number;
+    total: number;
+    notes?: string;
+    paymentStatus?: PaymentStatus;
+    snapToken?: string;
+    actor?: string;
+  }): {
+    success: boolean;
+    reservation?: Reservation;
+    message: string;
+  } {
+    const {
+      customerName = 'Pelanggan Takeaway',
+      customerPhone = '-',
+      items,
+      subtotal,
+      tax,
+      total,
+      notes = 'Pesanan Bungkus (Take Away)',
+      paymentStatus = 'unpaid',
+      snapToken,
+      actor = 'AI Assistant (Takeaway)',
+    } = data;
+
+    const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const code = `TK-${randomChars}`;
+    const qrToken = `QR-${code}-TAKEAWAY`;
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+
+    const newOrder: Reservation = {
+      id: `order-takeaway-${Date.now()}`,
+      code,
+      customerName,
+      customerPhone: customerPhone?.trim() || '-',
+      tableId: 'tbl-takeaway',
+      tableNumber: 'Bungkus / Take Away',
+      tableArea: 'Outdoor',
+      date: dateStr,
+      time: timeStr,
+      guestCount: 1,
+      status: 'confirmed',
+      autoConfirmed: true,
+      qrToken,
+      paymentStatus,
+      paymentAmount: total,
+      orderItems: items,
+      orderTotal: total,
+      snapToken,
+      notes: notes || 'Pesanan Bungkus (Take Away)',
+      tenantId: this.profile.tenantId || DEFAULT_TENANT_ID,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+
+    this.reservations.unshift(newOrder);
+    this.recordAudit(
+      actor,
+      'CREATE_TAKEAWAY_ORDER',
+      `Pesanan ${code}`,
+      `Pesanan bungkus ${code} (${items.length} item, Total: Rp ${total.toLocaleString('id-ID')}) dibuat untuk ${customerName}.`
+    );
+    this.persist();
+
+    return {
+      success: true,
+      reservation: { ...newOrder },
+      message: `Pesanan bungkus resmi berhasil dibuat dengan kode tiket ${code}. Total tagihan: Rp ${total.toLocaleString('id-ID')}.`,
+    };
+  }
+
   public getReservationByCode(code: string): Reservation | undefined {
     if (!code) return undefined;
     const clean = code.trim().toUpperCase();
@@ -960,5 +1037,7 @@ class RestaurantStore {
   }
 }
 
-// Global Singleton Instance
-export const restaurantStore = new RestaurantStore();
+// Global Singleton Instance across Next.js API routes & HMR
+const globalForStore = globalThis as unknown as { restaurantStore: RestaurantStore };
+export const restaurantStore = globalForStore.restaurantStore || new RestaurantStore();
+if (process.env.NODE_ENV !== 'production') globalForStore.restaurantStore = restaurantStore;

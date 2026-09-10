@@ -148,8 +148,154 @@ export default function AIChatWidget({
     }
   };
 
+  const { updatePaymentStatus, setReservationSnapToken } = useRestaurant();
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const ensureSnapScript = (snapUrl: string, clientKey: string): Promise<void> => {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined") return resolve();
+      const existing = document.getElementById("midtrans-snap") as HTMLScriptElement | null;
+      if (existing && existing.src === snapUrl && (window as any).snap) {
+        return resolve();
+      }
+      if (existing) {
+        existing.remove();
+      }
+      const script = document.createElement("script");
+      script.id = "midtrans-snap";
+      script.src = snapUrl;
+      script.setAttribute("data-client-key", clientKey);
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => resolve();
+      document.head.appendChild(script);
+    });
+  };
+
+  const triggerMidtransSnap = async (orderCode: string, amount: number, customerName?: string) => {
+    setIsProcessingPayment(true);
+    try {
+      const tokenRes = await fetch("/api/payment/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: orderCode,
+          amount: amount,
+          customerName: customerName || "Pelanggan Raso Minang",
+        }),
+      });
+
+      const tokenData = await tokenRes.json();
+
+      if (!tokenRes.ok || !tokenData.success || !tokenData.token) {
+        throw new Error(tokenData.message || "Gagal mendapatkan token pembayaran Midtrans.");
+      }
+
+      const snapToken = tokenData.token;
+      setReservationSnapToken(orderCode, snapToken);
+
+      if (tokenData.snapUrl && tokenData.clientKey) {
+        await ensureSnapScript(tokenData.snapUrl, tokenData.clientKey);
+      }
+
+      if (typeof window !== "undefined" && (window as any).snap) {
+        (window as any).snap.pay(snapToken, {
+          onSuccess: (result: any) => {
+            updatePaymentStatus(
+              orderCode,
+              "settlement",
+              result.payment_type || "Midtrans Snap",
+              amount,
+              "Customer Snap Payment (Chatbot)"
+            );
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `ai-pay-success-${Date.now()}`,
+                sender: "assistant",
+                text: `🎉 **Pembayaran Midtrans Berhasil!**\n\nPesanan **${orderCode}** telah terbayar lunas sebesar **Rp ${amount.toLocaleString("id-ID")}** via ${result.payment_type || "Midtrans"}.\n\nPesanan telah diteruskan ke dapur dan sedang disiapkan. Silakan sebutkan kode **${orderCode}** saat pengambilan di kasir.`,
+                timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+                actionButtons: [
+                  { label: `🎫 Lacak Pesanan ${orderCode}`, action: `check_code_${orderCode}` },
+                  { label: "🥘 Pesan Menu Lain", action: "show_menu" },
+                ],
+              },
+            ]);
+            setIsProcessingPayment(false);
+          },
+          onPending: (result: any) => {
+            updatePaymentStatus(
+              orderCode,
+              "pending",
+              result.payment_type || "Midtrans Snap",
+              amount,
+              "Customer Snap Pending (Chatbot)"
+            );
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `ai-pay-pending-${Date.now()}`,
+                sender: "assistant",
+                text: `⏳ **Pembayaran Sedang Menunggu Penyelesaian**\n\nSilakan selesaikan pembayaran untuk pesanan **${orderCode}** sesuai petunjuk pada metode pembayaran yang Anda pilih.`,
+                timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+                actionButtons: [
+                  { label: `💳 Buka Ulang Pembayaran`, action: `pay_snap_${orderCode}`, payload: { orderCode, amount } },
+                  { label: `🎫 Lacak Status ${orderCode}`, action: `check_code_${orderCode}` },
+                ],
+              },
+            ]);
+            setIsProcessingPayment(false);
+          },
+          onError: (result: any) => {
+            console.error("Snap error:", result);
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `ai-pay-err-${Date.now()}`,
+                sender: "assistant",
+                text: `⚠️ **Pembayaran Gagal atau Dibatalkan**\n\nTransaksi untuk pesanan **${orderCode}** belum berhasil diselesaikan. Anda dapat mencoba kembali atau memilih bayar tunai di kasir.`,
+                timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+                actionButtons: [
+                  { label: `🔄 Coba Bayar Lagi`, action: `pay_snap_${orderCode}`, payload: { orderCode, amount } },
+                  { label: "💵 Bayar Tunai di Kasir", action: "pay_cash", payload: { message: `Saya akan bayar tunai di kasir untuk pesanan ${orderCode}` } },
+                ],
+              },
+            ]);
+            setIsProcessingPayment(false);
+          },
+          onClose: () => {
+            setIsProcessingPayment(false);
+          },
+        });
+      } else {
+        throw new Error("Midtrans Snap SDK tidak termuat di browser.");
+      }
+    } catch (err: any) {
+      console.error("Payment error in AIChatWidget:", err);
+      setIsProcessingPayment(false);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ai-err-snap-${Date.now()}`,
+          sender: "assistant",
+          text: `⚠️ **Gagal Membuka Pembayaran Online:**\n${err.message || "Kendala koneksi ke server pembayaran Midtrans."}\n\n💡 *Anda tetap dapat menyelesaikan pesanan ini dengan membayar tunai langsung di kasir saat pengambilan pesanan.*`,
+          timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    }
+  };
+
   const handleActionButton = (btn: { label: string; action: string; payload?: any }) => {
-    if (btn.action === "show_menu") {
+    if (btn.action.startsWith("pay_snap_")) {
+      const code = btn.payload?.orderCode || btn.action.replace("pay_snap_", "");
+      const amt = btn.payload?.amount || 50000;
+      const name = btn.payload?.customerName;
+      triggerMidtransSnap(code, amt, name);
+    } else if (btn.action === "proceed_payment") {
+      handleSendMessage(btn.payload?.message || "Saya mau lanjut ke pembayaran pesanan ini");
+    } else if (btn.action === "pay_cash") {
+      handleSendMessage(btn.payload?.message || "Saya akan bayar tunai di kasir");
+    } else if (btn.action === "show_menu") {
       handleSendMessage("Apa saja menu favorit di Raso Minang?");
     } else if (btn.action === "check_tables") {
       handleSendMessage("Ada meja kosong untuk 2 orang hari ini?");
@@ -172,7 +318,7 @@ export default function AIChatWidget({
       const code = btn.action.replace("reschedule_", "");
       handleSendMessage(`Ubah jadwal reservasi ${code}`);
     } else {
-      handleSendMessage(btn.label);
+      handleSendMessage(btn.payload?.message || btn.label);
     }
   };
 
