@@ -1,0 +1,357 @@
+<mxfile host="app.diagrams.net" modified="2026-09-13T10:55:00.000Z" agent="Antigravity" version="24.0.0" type="device">
+
+  <!-- ========================================== -->
+  <!-- PAGE 1: HIGH-LEVEL TIMELINE GANTT           -->
+  <!-- ========================================== -->
+  <diagram id="page-timeline-gantt" name="1. Timeline Gantt (M1-M23)">
+    <mxGraphModel dx="2400" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===== TITLE ===== -->
+        <mxCell id="title" value="TIMELINE GANTT — AI-Powered Restaurant SaaS&#xa;Periode Magang: 03 Agustus 2026 – 10 Januari 2027 (23 Minggu)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="600" y="20" width="900" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ===== PHASE HEADERS ===== -->
+        <mxCell id="ph1_header" value="FASE 1&#xa;Research &amp; Foundation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A5F;strokeColor=#0F2744;fontColor=#FFFFFF;fontSize=13;fontStyle=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="110" width="520" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ph2_header" value="FASE 2&#xa;MVP Engine &amp; Core" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2563EB;strokeColor=#1D4ED8;fontColor=#FFFFFF;fontSize=13;fontStyle=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="630" y="110" width="520" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ph3_header" value="FASE 3&#xa;LLM Integration &amp; Memory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#7C3AED;strokeColor=#6D28D9;fontColor=#FFFFFF;fontSize=13;fontStyle=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="110" width="520" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ph4_header" value="FASE 4&#xa;Guardrails &amp; Multi-Tenant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DC2626;strokeColor=#B91C1C;fontColor=#FFFFFF;fontSize=13;fontStyle=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1690" y="110" width="520" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ph5_header" value="FASE 5&#xa;Evaluation &amp; Ordering" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EA580C;strokeColor=#C2410C;fontColor=#FFFFFF;fontSize=13;fontStyle=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2220" y="110" width="520" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ph6_header" value="FASE 6&#xa;Hardening &amp; Final" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#059669;strokeColor=#047857;fontColor=#FFFFFF;fontSize=13;fontStyle=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2750" y="110" width="400" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ===== TRACK LABELS ===== -->
+        <mxCell id="track_research" value="Research &amp;&#xa;Design" style="text;html=1;strokeColor=none;fillColor=#FEF3C7;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1;fontColor=#92400E;" vertex="1" parent="1">
+          <mxGeometry x="10" y="230" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="track_frontend" value="Frontend&#xa;(Next.js)" style="text;html=1;strokeColor=none;fillColor=#DBEAFE;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1;fontColor=#1E40AF;" vertex="1" parent="1">
+          <mxGeometry x="10" y="310" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="track_backend" value="Backend&#xa;(NestJS)" style="text;html=1;strokeColor=none;fillColor=#D1FAE5;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1;fontColor=#065F46;" vertex="1" parent="1">
+          <mxGeometry x="10" y="390" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="track_ai" value="AI Engine&#xa;&amp; LLM" style="text;html=1;strokeColor=none;fillColor=#EDE9FE;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1;fontColor=#5B21B6;" vertex="1" parent="1">
+          <mxGeometry x="10" y="470" width="80" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="track_testing" value="Testing &amp;&#xa;Security" style="text;html=1;strokeColor=none;fillColor=#FFE4E6;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1;fontColor=#9F1239;" vertex="1" parent="1">
+          <mxGeometry x="10" y="550" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ===== GANTT BARS ===== -->
+        <!-- Research Track -->
+        <mxCell id="bar_r1" value="Riset Model LLM &amp; Konsep" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#92400E;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="100" y="240" width="390" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_r2" value="Benchmark Model" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#92400E;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="240" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_r3" value="Eval Dataset 100" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#92400E;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2350" y="240" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_r4" value="Final Docs &amp; Laporan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#92400E;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2880" y="240" width="260" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Frontend Track -->
+        <mxCell id="bar_f1" value="Landing, Menu, Reservasi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#3B82F6;fontColor=#1E40AF;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="360" y="320" width="270" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_f2" value="Admin Dashboard, POS, Monitoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#3B82F6;fontColor=#1E40AF;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="490" y="320" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_f4" value="Customer UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#3B82F6;fontColor=#1E40AF;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="320" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_f5" value="White-Label" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#3B82F6;fontColor=#1E40AF;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1950" y="320" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_f6" value="Streaming UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#3B82F6;fontColor=#1E40AF;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2480" y="320" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Backend Track -->
+        <mxCell id="bar_b1" value="PostgreSQL + Prisma + NestJS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="890" y="400" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_b3" value="Customer API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="400" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_b4" value="Security" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1690" y="400" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_b5" value="Rules" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1950" y="400" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_b6" value="Order API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2220" y="400" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_b7" value="Cache &amp; Perf" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2480" y="400" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_b8" value="Observability" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2610" y="400" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- AI Engine Track -->
+        <mxCell id="bar_a1" value="AI Foundation + Orchestrator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="490" y="480" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_a3" value="SDK + Router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="480" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_a4" value="Memory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="480" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_a6" value="Guardrails &amp; Prompt Defense" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1690" y="480" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_a7" value="Persona" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1950" y="480" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_a8" value="Order Tools" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2220" y="480" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_a9" value="Fallback" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2610" y="480" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Testing Track -->
+        <mxCell id="bar_t1" value="Isolation Test" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#9F1239;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1550" y="560" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_t2" value="Red-Team" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#9F1239;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="1820" y="560" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_t3" value="3-Tenant Test" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#9F1239;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2080" y="560" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_t4" value="Eval Framework (LLM-as-Judge)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#9F1239;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2350" y="560" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_t5" value="Load Test 50" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#9F1239;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2750" y="560" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="bar_t6" value="Final Eval" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#9F1239;fontSize=9;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="2880" y="560" width="130" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ===== MILESTONES ===== -->
+        <mxCell id="ms1" value="🎯 MVP V1" style="shape=mxgraph.basic.star;whiteSpace=wrap;html=1;fillColor=#FCD34D;strokeColor=#F59E0B;fontColor=#78350F;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1055" y="620" width="60" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ms2" value="🔴 2 Tenant" style="shape=mxgraph.basic.star;whiteSpace=wrap;html=1;fillColor=#FCA5A5;strokeColor=#EF4444;fontColor=#7F1D1D;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1585" y="620" width="60" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ms3" value="🔴 3 Tenant" style="shape=mxgraph.basic.star;whiteSpace=wrap;html=1;fillColor=#FCA5A5;strokeColor=#EF4444;fontColor=#7F1D1D;fontSize=10;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2115" y="620" width="60" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="ms5" value="🎯 FINAL" style="shape=mxgraph.basic.star;whiteSpace=wrap;html=1;fillColor=#34D399;strokeColor=#059669;fontColor=#064E3B;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="3050" y="620" width="70" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- NOW Marker -->
+        <mxCell id="now_line" value="" style="shape=mxgraph.basic.rect;fillColor=#EF4444;strokeColor=none;opacity=60;" vertex="1" parent="1">
+          <mxGeometry x="857" y="110" width="3" height="580" as="geometry" />
+        </mxCell>
+        <mxCell id="now_label" value="📍 SEKARANG (M6)" style="text;html=1;strokeColor=none;fillColor=#FEE2E2;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=11;fontStyle=1;fontColor=#DC2626;" vertex="1" parent="1">
+          <mxGeometry x="800" y="85" width="130" height="25" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ========================================== -->
+  <!-- PAGE 2: DEVELOPMENT DEPENDENCY FLOW        -->
+  <!-- ========================================== -->
+  <diagram id="page-dev-flow" name="2. Development Flow">
+    <mxGraphModel dx="1800" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="d0" />
+        <mxCell id="d1" parent="d0" />
+
+        <mxCell id="dtitle" value="DEVELOPMENT DEPENDENCY FLOW&#xa;AI-Powered Restaurant SaaS" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#0F172A;" vertex="1" parent="d1">
+          <mxGeometry x="300" y="20" width="500" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Fase 1 -->
+        <mxCell id="df_n1" value="Riset &amp; Konsep&#xa;(M1-M2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=11;" vertex="1" parent="d1">
+          <mxGeometry x="50" y="100" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n2" value="Arsitektur &amp;&#xa;DB Schema&#xa;(M2-M3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=11;" vertex="1" parent="d1">
+          <mxGeometry x="250" y="100" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e1" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#F59E0B;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n1" target="df_n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Fase 2 -->
+        <mxCell id="df_n3" value="Frontend&#xa;Landing + Menu&#xa;(M3)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#3B82F6;fontColor=#1E40AF;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="50" y="200" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n4" value="Admin Dashboard&#xa;POS &amp; Payment&#xa;(M4)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#3B82F6;fontColor=#1E40AF;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="210" y="200" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n5" value="AI Foundation&#xa;State Machine&#xa;(M4)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="370" y="200" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n6" value="AI Orchestrator&#xa;9router + Lock&#xa;(M5-M6)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="530" y="200" width="130" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df_e2" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#3B82F6;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n2" target="df_n3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e3" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#3B82F6;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n3" target="df_n4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e4" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#8B5CF6;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n4" target="df_n5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e5" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#8B5CF6;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n5" target="df_n6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DB Migration -->
+        <mxCell id="df_n7" value="PostgreSQL&#xa;NestJS API&#xa;(M7)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="50" y="310" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n8" value="Reservation API&#xa;Atomic Lock&#xa;(M8)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="210" y="310" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_mvp" value="🎯 MVP V1" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#FCD34D;strokeColor=#F59E0B;fontColor=#78350F;fontSize=13;fontStyle=1;size=15;" vertex="1" parent="d1">
+          <mxGeometry x="380" y="315" width="130" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df_e6" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#10B981;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n6" target="df_n7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e7" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#10B981;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n7" target="df_n8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e_mvp" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#F59E0B;strokeWidth=3;endFill=1;" edge="1" parent="d1" source="df_n8" target="df_mvp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Fase 3 -->
+        <mxCell id="df_n9" value="SDK LLM&#xa;Model Router&#xa;(M9)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="50" y="420" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n10" value="Session Memory&#xa;Slot Filling&#xa;(M10)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="210" y="420" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n11" value="Customer Profile&#xa;Long-Term Mem&#xa;(M11)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#8B5CF6;fontColor=#5B21B6;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="370" y="420" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n12" value="Tenant B + Test&#xa;Demo 2 Tenant&#xa;(M12)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#9F1239;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="530" y="420" width="130" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df_e8" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#8B5CF6;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_mvp" target="df_n9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e9" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#8B5CF6;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n9" target="df_n10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e10" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#8B5CF6;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n10" target="df_n11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e11" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#F43F5E;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n11" target="df_n12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Fase 4 -->
+        <mxCell id="df_n13" value="Guardrails&#xa;Prompt Defense&#xa;(M13-M14)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#9F1239;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="50" y="530" width="150" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n15" value="Dynamic Persona&#xa;White-Label&#xa;(M15)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#3B82F6;fontColor=#1E40AF;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="230" y="530" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n16" value="Tenant C + Test&#xa;Demo 3 Tenant&#xa;(M16)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#9F1239;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="390" y="530" width="130" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df_e12" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#F43F5E;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n12" target="df_n13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e14" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#3B82F6;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n13" target="df_n15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e15" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#F43F5E;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n15" target="df_n16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Fase 5 -->
+        <mxCell id="df_n17" value="Order API&#xa;AI Order Tools&#xa;(M17)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="50" y="640" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n18" value="Eval Framework&#xa;Baseline vs SaaS&#xa;(M18)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="210" y="640" width="140" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n19" value="Caching &amp; Perf&#xa;Streaming&#xa;(M19)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="380" y="640" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n20" value="Observability&#xa;Audit Trail&#xa;(M20)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1FAE5;strokeColor=#10B981;fontColor=#065F46;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="540" y="640" width="130" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df_e16" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#10B981;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n16" target="df_n17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e17" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#F59E0B;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n17" target="df_n18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e18" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#10B981;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n18" target="df_n19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e19" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#10B981;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n19" target="df_n20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Fase 6 -->
+        <mxCell id="df_n21" value="Load Test&#xa;Stress Test&#xa;(M21)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE4E6;strokeColor=#F43F5E;fontColor=#9F1239;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="50" y="750" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n22" value="Final Eval&#xa;Documentation&#xa;(M22)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#F59E0B;fontColor=#78350F;fontSize=10;" vertex="1" parent="d1">
+          <mxGeometry x="210" y="750" width="130" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="df_n23" value="🎯 FINAL DEMO&#xa;Presentasi Akhir&#xa;Handoff&#xa;(M23)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#34D399;strokeColor=#059669;fontColor=#064E3B;fontSize=12;fontStyle=1;" vertex="1" parent="d1">
+          <mxGeometry x="370" y="740" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df_e20" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#F43F5E;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n20" target="df_n21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e21" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#F59E0B;strokeWidth=2;endFill=1;" edge="1" parent="d1" source="df_n21" target="df_n22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e22" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#059669;strokeWidth=3;endFill=1;" edge="1" parent="d1" source="df_n22" target="df_n23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="df_final" value="✅ SELESAI" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#059669;strokeColor=#047857;fontColor=#FFFFFF;fontSize=14;fontStyle=1;size=15;" vertex="1" parent="d1">
+          <mxGeometry x="600" y="755" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="df_e_final" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#059669;strokeWidth=3;endFill=1;" edge="1" parent="d1" source="df_n23" target="df_final">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>

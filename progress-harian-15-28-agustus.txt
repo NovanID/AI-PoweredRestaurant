@@ -4,7 +4,8 @@ HASIL/PROGRESS:
 1. Inisialisasi project Next.js dengan TypeScript dan Tailwind CSS
 2. Setup struktur folder: app/, components/, lib/, types/
 3. Konfigurasi package.json dengan dependencies: Next.js, React, Tailwind
-4. Setup TypeScript configuration (tsconfig.json)
+4. Setup TypeScript configuration
+(tsconfig.json)
 5. Membuat base layout dan global styling (globals.css) dengan tema warna restoran Minang (#8f1d20, #d8a43b, #fffaf0)
 KENDALA: Belum ada kendala signifikan, setup berjalan lancar
 SOLUSI/TINDAKAN: -

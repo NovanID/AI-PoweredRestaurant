@@ -1,4 +1,4 @@
-Iya, sekarang konteksnya jelas. Dan setelah melihat **implementation plan yang dibuat agent-mu**, menurut saya arahnya **sudah bagus dan cukup serius**, tapi ada beberapa hal yang **harus kamu koreksi sebelum agent mulai coding**.
+ya, sekarang konteksnya jelas. Dan setelah melihat **implementation plan yang dibuat agent-mu**, menurut saya arahnya **sudah bagus dan cukup serius**, tapi ada beberapa hal yang **harus kamu koreksi sebelum agent mulai coding**.
 
 Kalau ini benar-benar untuk client, saya justru **jangan biarkan agent langsung menjalankan plan tersebut apa adanya**.
 
