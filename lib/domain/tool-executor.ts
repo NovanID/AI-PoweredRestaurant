@@ -6,6 +6,8 @@ import { restaurantStore } from '../restaurant-store';
 import { IdempotencyManager } from '../infrastructure/idempotency';
 import { DomainEventBus } from '../infrastructure/event-bus';
 import { ObservabilityManager } from '../infrastructure/observability';
+import { PrismaRestaurantRepository } from '../db/prisma-repository';
+import { OramaMenuIndex } from '../search/orama-menu-index';
 
 export class ToolExecutor {
   /**
@@ -23,22 +25,31 @@ export class ToolExecutor {
     const endSpan = traceId ? ObservabilityManager.startSpan(traceId, `tool:${toolName}`) : () => {};
 
     try {
-      // 1. Schema parameter validation
-      const paramCheck = ToolRegistry.validateParams(toolName, rawArgs);
-      if (!paramCheck.valid) {
+      // 1. Strict Zod Schema validation and parameter coercion
+      const validation = ToolRegistry.validateWithZod(toolName, rawArgs);
+      if (!validation.success) {
         return {
           tool: toolName,
           success: false,
           data: null,
-          message: `Parameter tool tidak lengkap. Kurang: ${paramCheck.missing.join(', ')}`,
-          errorCode: 'MISSING_PARAMETERS',
+          message: `Parameter tool tidak valid: ${validation.errors?.join(', ')}`,
+          errorCode: 'INVALID_PARAMETERS',
         };
       }
+
+      const args = validation.data || {};
 
       // 2. Dispatch to specific domain service
       switch (toolName) {
         case 'get_restaurant_info': {
-          const profile = restaurantStore.getProfile();
+          let profile: any = null;
+          try {
+            profile = await PrismaRestaurantRepository.getProfile(tenantId);
+          } catch (dbErr) {
+            console.warn('[ToolExecutor] Prisma getProfile fallback to store:', dbErr);
+          }
+          if (!profile) profile = restaurantStore.getProfile();
+
           return {
             tool: toolName,
             success: true,
@@ -48,26 +59,60 @@ export class ToolExecutor {
         }
 
         case 'get_menu': {
-          const { category, search, maxPrice, spicinessLevel } = rawArgs;
-          let items = restaurantStore.getMenuItems(category || 'Semua', search);
+          const { category, search, maxPrice, spicinessLevel } = args;
+          let items: any[] = [];
 
-          // If no exact match and search has multiple words, try first word fallback
-          if (items.length === 0 && search && typeof search === 'string') {
-            const words = search.split(/\s+/).filter((w) => w.length > 2);
-            for (const word of words) {
-              const fallbackItems = restaurantStore.getMenuItems(category || 'Semua', word);
-              if (fallbackItems.length > 0) {
-                items = fallbackItems;
-                break;
-              }
+          // 1. If search term is provided, use Orama fuzzy typo-tolerant search
+          if (search && typeof search === 'string' && search.trim().length > 0) {
+            try {
+              items = await OramaMenuIndex.searchMenu(search, {
+                tenantId,
+                category: category || undefined,
+                maxPrice: maxPrice ? Number(maxPrice) : undefined,
+                spicinessLevel: spicinessLevel ? Number(spicinessLevel) : undefined,
+              });
+            } catch (oramaErr) {
+              console.warn('[ToolExecutor] Orama search fallback:', oramaErr);
             }
           }
 
-          if (maxPrice) {
-            items = items.filter((m) => m.price <= Number(maxPrice));
+          // 2. If no search term or Orama produced 0 hits, query Prisma
+          if (items.length === 0) {
+            try {
+              items = await PrismaRestaurantRepository.getMenuItems({
+                tenantId,
+                category,
+                search,
+                maxPrice: maxPrice ? Number(maxPrice) : undefined,
+                spicinessLevel: spicinessLevel ? Number(spicinessLevel) : undefined,
+              });
+            } catch (dbErr) {
+              console.warn('[ToolExecutor] Prisma getMenuItems fallback to store:', dbErr);
+            }
           }
-          if (spicinessLevel) {
-            items = items.filter((m) => m.spicinessLevel === Number(spicinessLevel));
+
+          // 3. Fallback to restaurantStore
+          if (items.length === 0) {
+            items = restaurantStore.getMenuItems(category || 'Semua', search);
+
+            // If no exact match and search has multiple words, try first word fallback
+            if (items.length === 0 && search && typeof search === 'string') {
+              const words = search.split(/\s+/).filter((w: string) => w.length > 2);
+              for (const word of words) {
+                const fallbackItems = restaurantStore.getMenuItems(category || 'Semua', word);
+                if (fallbackItems.length > 0) {
+                  items = fallbackItems;
+                  break;
+                }
+              }
+            }
+
+            if (maxPrice) {
+              items = items.filter((m) => m.price <= Number(maxPrice));
+            }
+            if (spicinessLevel) {
+              items = items.filter((m) => m.spicinessLevel === Number(spicinessLevel));
+            }
           }
 
           return {
@@ -79,35 +124,50 @@ export class ToolExecutor {
         }
 
         case 'check_availability': {
-          const result = ReservationService.checkAvailability({
-            tenantId,
-            date: rawArgs.date,
-            time: rawArgs.time,
-            guestCount: Number(rawArgs.guestCount),
-            preferredArea: rawArgs.preferredArea,
-          });
+          let result: any = null;
+          try {
+            result = await PrismaRestaurantRepository.checkAvailability({
+              tenantId,
+              date: args.date,
+              time: args.time,
+              guestCount: args.guestCount,
+              preferredArea: args.preferredArea,
+            });
+          } catch (dbErr) {
+            console.warn('[ToolExecutor] Prisma checkAvailability fallback to service:', dbErr);
+          }
+
+          if (!result) {
+            result = await ReservationService.checkAvailability({
+              tenantId,
+              date: args.date,
+              time: args.time,
+              guestCount: args.guestCount,
+              preferredArea: args.preferredArea,
+            });
+          }
 
           return {
             tool: toolName,
             success: result.available,
             data: result,
             message: result.available
-              ? `Tersedia ${result.availableTables.length} meja yang cocok untuk ${rawArgs.guestCount} orang pada ${rawArgs.date} pukul ${rawArgs.time} WIB.`
+              ? `Tersedia ${result.availableTables.length} meja yang cocok untuk ${args.guestCount} orang pada ${args.date} pukul ${args.time} WIB.`
               : (result.reason || 'Meja tidak tersedia.'),
           };
         }
 
         case 'request_reservation_hold': {
-          const holdResult = ReservationService.createHoldLease({
+          const holdResult = await ReservationService.createHoldLease({
             tenantId,
             conversationId,
-            customerName: rawArgs.customerName,
-            customerPhone: rawArgs.customerPhone || '-',
-            date: rawArgs.date,
-            time: rawArgs.time,
-            guestCount: Number(rawArgs.guestCount),
-            preferredArea: rawArgs.preferredArea,
-            notes: rawArgs.notes,
+            customerName: args.customerName,
+            customerPhone: args.customerPhone || '-',
+            date: args.date,
+            time: args.time,
+            guestCount: args.guestCount,
+            preferredArea: args.preferredArea,
+            notes: args.notes,
           });
 
           return {
@@ -119,7 +179,7 @@ export class ToolExecutor {
         }
 
         case 'confirm_reservation': {
-          const idempotencyKey = rawArgs.idempotencyKey || `idem_res_${rawArgs.leaseToken}`;
+          const idempotencyKey = args.idempotencyKey || `idem_res_${args.leaseToken}`;
           const idCheck = IdempotencyManager.acquire(idempotencyKey);
 
           if (!idCheck.acquired && idCheck.existingRecord?.status === 'COMMITTED') {
@@ -131,16 +191,39 @@ export class ToolExecutor {
             };
           }
 
-          const commitResult = ReservationService.commitLeasedReservation({
-            leaseToken: rawArgs.leaseToken,
-            customerName: rawArgs.customerName || 'Pelanggan',
-            customerPhone: rawArgs.customerPhone || '-',
-            notes: rawArgs.notes,
+          const commitResult = await ReservationService.commitLeasedReservation({
+            leaseToken: args.leaseToken,
+            customerName: args.customerName || 'Pelanggan',
+            customerPhone: args.customerPhone || '-',
+            notes: args.notes,
             actor: 'AI Assistant',
           });
 
           if (commitResult.success && commitResult.reservation) {
             IdempotencyManager.commit(idempotencyKey, commitResult.reservation);
+
+            // Persist into PostgreSQL via Prisma
+            try {
+              const res = commitResult.reservation;
+              await PrismaRestaurantRepository.createReservation({
+                tenantId,
+                code: res.code,
+                customerName: res.customerName,
+                customerPhone: res.customerPhone,
+                tableId: res.tableId,
+                tableNumber: res.tableNumber,
+                tableArea: res.tableArea,
+                date: res.date,
+                time: res.time,
+                guestCount: res.guestCount,
+                notes: res.notes,
+                paymentStatus: res.paymentStatus,
+                paymentAmount: res.paymentAmount,
+                snapToken: res.snapToken,
+              });
+            } catch (dbErr) {
+              console.warn('[ToolExecutor] Prisma createReservation error:', dbErr);
+            }
 
             // Publish domain event
             DomainEventBus.publish({
@@ -162,13 +245,23 @@ export class ToolExecutor {
         }
 
         case 'get_reservation': {
-          const res = ReservationService.getReservation(rawArgs.code);
+          let res: any = null;
+          try {
+            res = await PrismaRestaurantRepository.getReservationByCode(tenantId, args.code);
+          } catch (dbErr) {
+            console.warn('[ToolExecutor] Prisma getReservation fallback to service:', dbErr);
+          }
+
+          if (!res) {
+            res = ReservationService.getReservation(args.code);
+          }
+
           if (!res) {
             return {
               tool: toolName,
               success: false,
               data: null,
-              message: `Reservasi dengan kode "${rawArgs.code}" tidak ditemukan.`,
+              message: `Reservasi dengan kode "${args.code}" tidak ditemukan.`,
             };
           }
           return {
@@ -180,13 +273,19 @@ export class ToolExecutor {
         }
 
         case 'cancel_reservation': {
-          const cancelResult = ReservationService.cancelReservation(rawArgs.code);
+          try {
+            await PrismaRestaurantRepository.cancelReservation(tenantId, args.code, args.reason);
+          } catch (dbErr) {
+            console.warn('[ToolExecutor] Prisma cancelReservation error:', dbErr);
+          }
+
+          const cancelResult = ReservationService.cancelReservation(args.code);
           if (cancelResult.success) {
             DomainEventBus.publish({
               eventType: 'reservation.cancelled',
               tenantId,
               traceId,
-              payload: { code: rawArgs.code, reason: rawArgs.reason },
+              payload: { code: args.code, reason: args.reason },
             });
           }
           return {
@@ -198,10 +297,20 @@ export class ToolExecutor {
         }
 
         case 'update_reservation': {
-          const updateResult = ReservationService.updateReservation(rawArgs.code, {
-            date: rawArgs.newDate,
-            time: rawArgs.newTime,
-            guestCount: rawArgs.newGuestCount,
+          try {
+            await PrismaRestaurantRepository.updateReservation(tenantId, args.code, {
+              newDate: args.newDate,
+              newTime: args.newTime,
+              newGuestCount: args.newGuestCount,
+            });
+          } catch (dbErr) {
+            console.warn('[ToolExecutor] Prisma updateReservation error:', dbErr);
+          }
+
+          const updateResult = ReservationService.updateReservation(args.code, {
+            date: args.newDate,
+            time: args.newTime,
+            guestCount: args.newGuestCount,
           });
 
           if (updateResult.success && updateResult.reservation) {
@@ -222,10 +331,10 @@ export class ToolExecutor {
         }
 
         case 'calculate_order_total': {
-          const items = (rawArgs.items || []) as Array<{ menuItemId?: string; menuName?: string; name?: string; quantity?: number }>;
+          const items = (args.items || []) as Array<{ menuItemId?: string; menuName?: string; name?: string; quantity?: number }>;
           let subtotal = 0;
           const detailedItems: any[] = [];
-          const allMenu = restaurantStore.getMenuItems();
+          const allMenu = await PrismaRestaurantRepository.getMenuItems({ tenantId });
 
           for (const it of items) {
             const query = (it.menuName || it.name || it.menuItemId || '').trim().toLowerCase();
@@ -233,11 +342,23 @@ export class ToolExecutor {
 
             const qty = Number(it.quantity) > 0 ? Number(it.quantity) : 1;
             // Search by exact ID, or substring match on name
-            const menuItem = allMenu.find((m) => {
+            let menuItem = allMenu.find((m) => {
               const mId = m.id.toLowerCase();
               const mName = m.name.toLowerCase();
               return mId === query || mName === query || mName.includes(query) || query.includes(mName);
             });
+
+            // If not found, use Orama fuzzy search with typo tolerance (e.g. "rendng" -> Rendang)
+            if (!menuItem) {
+              try {
+                const fuzzyMatch = await OramaMenuIndex.findBestMatch(query, tenantId);
+                if (fuzzyMatch) {
+                  menuItem = fuzzyMatch;
+                }
+              } catch (oramaErr) {
+                console.warn('[ToolExecutor] Orama findBestMatch failed:', oramaErr);
+              }
+            }
 
             if (menuItem) {
               const itemTotal = menuItem.price * qty;
@@ -275,21 +396,33 @@ export class ToolExecutor {
         }
 
         case 'create_takeaway_order': {
-          const items = (rawArgs.items || []) as Array<{ menuItemId?: string; menuName?: string; name?: string; quantity?: number; notes?: string }>;
+          const items = (args.items || []) as Array<{ menuItemId?: string; menuName?: string; name?: string; quantity?: number; notes?: string }>;
           let subtotal = 0;
           const orderItems: any[] = [];
-          const allMenu = restaurantStore.getMenuItems();
+          const allMenu = await PrismaRestaurantRepository.getMenuItems({ tenantId });
 
           for (const it of items) {
             const query = (it.menuName || it.name || it.menuItemId || '').trim().toLowerCase();
             if (!query) continue;
 
             const qty = Number(it.quantity) > 0 ? Number(it.quantity) : 1;
-            const menuItem = allMenu.find((m) => {
+            let menuItem = allMenu.find((m) => {
               const mId = m.id.toLowerCase();
               const mName = m.name.toLowerCase();
               return mId === query || mName === query || mName.includes(query) || query.includes(mName);
             });
+
+            // If not found, use Orama fuzzy search with typo tolerance
+            if (!menuItem) {
+              try {
+                const fuzzyMatch = await OramaMenuIndex.findBestMatch(query, tenantId);
+                if (fuzzyMatch) {
+                  menuItem = fuzzyMatch;
+                }
+              } catch (oramaErr) {
+                console.warn('[ToolExecutor] Orama findBestMatch failed:', oramaErr);
+              }
+            }
 
             if (menuItem) {
               const itemTotal = menuItem.price * qty;
@@ -317,25 +450,13 @@ export class ToolExecutor {
           const tax = Math.round(subtotal * 0.1);
           const total = subtotal + tax;
 
-          const created = restaurantStore.createTakeawayOrder({
-            customerName: rawArgs.customerName || 'Pelanggan Takeaway',
-            customerPhone: rawArgs.customerPhone || '-',
+          const created = await PrismaRestaurantRepository.createTakeawayOrder({
+            tenantId,
+            customerName: args.customerName || 'Pelanggan Takeaway',
+            customerPhone: args.customerPhone || '-',
             items: orderItems,
-            subtotal,
-            tax,
-            total,
-            notes: rawArgs.notes,
-            actor: 'AI Assistant (Takeaway)',
+            notes: args.notes,
           });
-
-          if (!created.success || !created.reservation) {
-            return {
-              tool: toolName,
-              success: false,
-              data: null,
-              message: created.message || 'Gagal membuat pesanan bungkus.',
-            };
-          }
 
           const itemsSummary = orderItems
             .map((d) => `${d.quantity}x ${d.name}`)
@@ -345,15 +466,15 @@ export class ToolExecutor {
             tool: toolName,
             success: true,
             data: {
-              orderCode: created.reservation.code,
+              orderCode: created.code,
               items: orderItems,
               itemsSummary,
               subtotal,
               tax,
               total,
-              reservation: created.reservation,
+              reservation: created,
             },
-            message: `Pesanan bungkus resmi berhasil dibuat! Kode Tiket: ${created.reservation.code}. Rincian: ${itemsSummary}. Total: Rp ${total.toLocaleString('id-ID')} (Termasuk PB1 10%). Silakan selesaikan pembayaran untuk diproses dapur.`,
+            message: `Pesanan bungkus resmi berhasil dibuat! Kode Tiket: ${created.code}. Rincian: ${itemsSummary}. Total: Rp ${total.toLocaleString('id-ID')} (Termasuk PB1 10%). Silakan selesaikan pembayaran untuk diproses dapur.`,
           };
         }
 
@@ -362,7 +483,7 @@ export class ToolExecutor {
             eventType: 'human.handoff.requested',
             tenantId,
             traceId,
-            payload: { conversationId, reason: rawArgs.reason },
+            payload: { conversationId, reason: args.reason },
           });
 
           return {

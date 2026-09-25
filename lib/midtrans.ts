@@ -36,6 +36,22 @@ export interface SnapTransactionResponse {
   redirect_url: string;
 }
 
+export function getExpectedPaymentAmount(reservation: {
+  orderTotal?: unknown;
+  paymentAmount?: unknown;
+}): number {
+  return Number(reservation.orderTotal || reservation.paymentAmount || 0);
+}
+
+export function isExpectedPaymentAmount(
+  reservation: { orderTotal?: unknown; paymentAmount?: unknown },
+  receivedAmount: unknown
+): boolean {
+  const expected = getExpectedPaymentAmount(reservation);
+  const received = Number(receivedAmount);
+  return expected > 0 && Number.isFinite(received) && Math.round(expected) === Math.round(received);
+}
+
 /**
  * Retrieve Midtrans configuration from environment variables
  */
@@ -174,13 +190,16 @@ export function verifyMidtransSignature(params: {
   signatureKey: string;
 }): boolean {
   const config = getMidtransConfig();
+  if (!config.serverKey) return false;
   const rawString = `${params.orderId}${params.statusCode}${params.grossAmount}${config.serverKey}`;
   const calculatedSignature = crypto
     .createHash('sha512')
     .update(rawString)
     .digest('hex');
 
-  return calculatedSignature.toLowerCase() === params.signatureKey.toLowerCase();
+  const expected = Buffer.from(calculatedSignature.toLowerCase());
+  const received = Buffer.from(params.signatureKey.toLowerCase());
+  return expected.length === received.length && crypto.timingSafeEqual(expected, received);
 }
 
 /**
@@ -194,6 +213,14 @@ export function mapMidtransStatus(
   reservationStatus: 'pending' | 'confirmed' | 'rejected' | 'cancelled';
   description: string;
 } {
+  if (fraudStatus === 'deny') {
+    return {
+      paymentStatus: 'cancel',
+      reservationStatus: 'rejected',
+      description: 'Pembayaran ditolak oleh Fraud Detection System',
+    };
+  }
+
   switch (transactionStatus) {
     case 'capture':
       if (fraudStatus === 'challenge') {

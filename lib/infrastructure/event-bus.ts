@@ -6,6 +6,7 @@ export type DomainEventType =
   | 'reservation.cancelled'
   | 'inventory.updated'
   | 'order.created'
+  | 'payment.updated'
   | 'restaurant.status.changed'
   | 'human.handoff.requested';
 

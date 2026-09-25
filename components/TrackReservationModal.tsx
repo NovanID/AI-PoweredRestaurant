@@ -17,10 +17,9 @@ export default function TrackReservationModal({
 }: TrackReservationModalProps) {
   const {
     getReservationByCode,
+    fetchReservationByCode,
     updateReservationStatus,
     updateReservation,
-    updatePaymentStatus,
-    setReservationSnapToken,
   } = useRestaurant();
   const [codeQuery, setCodeQuery] = useState(initialCode);
   const [reservation, setReservation] = useState<Reservation | null>(null);
@@ -74,14 +73,29 @@ export default function TrackReservationModal({
       const norm = normalizeCode(initialCode);
       setCodeQuery(norm);
       const res = getReservationByCode(norm);
-      setReservation(res || null);
       if (res) {
+        setReservation(res);
         setRescheduleData({
           date: res.date,
           time: res.time,
           guests: res.guestCount,
           area: res.tableArea,
           notes: res.notes || "",
+        });
+      } else {
+        fetchReservationByCode(norm).then((dbRes) => {
+          if (dbRes) {
+            setReservation(dbRes);
+            setRescheduleData({
+              date: dbRes.date,
+              time: dbRes.time,
+              guests: dbRes.guestCount,
+              area: dbRes.tableArea,
+              notes: dbRes.notes || "",
+            });
+          } else {
+            setReservation(null);
+          }
         });
       }
       setSearched(true);
@@ -95,11 +109,11 @@ export default function TrackReservationModal({
     setActionMessage("");
     setActionError("");
     setVerifyError("");
-  }, [initialCode, isOpen, getReservationByCode]);
+  }, [initialCode, isOpen, getReservationByCode, fetchReservationByCode]);
 
   if (!isOpen) return null;
 
-  const executeLookup = (codeToSearch: string) => {
+  const executeLookup = async (codeToSearch: string) => {
     setActionMessage("");
     setActionError("");
     setActiveAction("view");
@@ -108,16 +122,33 @@ export default function TrackReservationModal({
     if (!norm) return;
 
     setCodeQuery(norm);
-    const res = getReservationByCode(norm);
-    setReservation(res || null);
-    if (res) {
+    const localRes = getReservationByCode(norm);
+    if (localRes) {
+      setReservation(localRes);
       setRescheduleData({
-        date: res.date,
-        time: res.time,
-        guests: res.guestCount,
-        area: res.tableArea,
-        notes: res.notes || "",
+        date: localRes.date,
+        time: localRes.time,
+        guests: localRes.guestCount,
+        area: localRes.tableArea,
+        notes: localRes.notes || "",
       });
+      setSearched(true);
+      return;
+    }
+
+    // Remote lookup directly from PostgreSQL
+    const remoteRes = await fetchReservationByCode(norm);
+    if (remoteRes) {
+      setReservation(remoteRes);
+      setRescheduleData({
+        date: remoteRes.date,
+        time: remoteRes.time,
+        guests: remoteRes.guestCount,
+        area: remoteRes.tableArea,
+        notes: remoteRes.notes || "",
+      });
+    } else {
+      setReservation(null);
     }
     setSearched(true);
   };
@@ -266,7 +297,6 @@ export default function TrackReservationModal({
       }
 
       const snapToken = tokenData.token;
-      setReservationSnapToken(reservation.code, snapToken);
 
       // Ensure matching script is loaded
       if (tokenData.snapUrl && tokenData.clientKey) {
@@ -277,27 +307,11 @@ export default function TrackReservationModal({
         window.snap.pay(snapToken, {
           onSuccess: (result) => {
             console.log("Snap success:", result);
-            const res = updatePaymentStatus(
-              reservation.code,
-              "settlement",
-              result.payment_type || "Midtrans Snap",
-              amount,
-              "Customer Modal Snap"
-            );
-            if (res.reservation) setReservation(res.reservation);
             setActionMessage("Pembayaran Deposit Berhasil! Reservasi Anda otomatis berstatus Terkonfirmasi.");
             setIsProcessingPayment(false);
           },
           onPending: (result) => {
             console.log("Snap pending:", result);
-            const res = updatePaymentStatus(
-              reservation.code,
-              "pending",
-              result.payment_type || "Midtrans Snap",
-              amount,
-              "Customer Modal Snap"
-            );
-            if (res.reservation) setReservation(res.reservation);
             setActionMessage("Instruksi pembayaran diterbitkan. Menunggu penyelesaian transfer Anda.");
             setIsProcessingPayment(false);
           },

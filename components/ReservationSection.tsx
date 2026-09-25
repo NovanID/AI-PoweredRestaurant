@@ -18,8 +18,6 @@ export default function ReservationSection({
   const {
     checkAvailability,
     createReservation,
-    updatePaymentStatus,
-    setReservationSnapToken,
     profile,
     isClient,
   } = useRestaurant();
@@ -164,7 +162,6 @@ export default function ReservationSection({
       }
 
       const snapToken = tokenData.token;
-      setReservationSnapToken(reservation.code, snapToken);
 
       // Ensure exact matching Snap script is loaded (Production vs Sandbox)
       if (tokenData.snapUrl && tokenData.clientKey) {
@@ -176,13 +173,6 @@ export default function ReservationSection({
         window.snap.pay(snapToken, {
           onSuccess: (result) => {
             console.log("Snap payment success:", result);
-            updatePaymentStatus(
-              reservation.code,
-              "settlement",
-              result.payment_type || "Midtrans Snap",
-              amount,
-              "Customer Snap Payment"
-            );
             setCreatedReservation((prev) =>
               prev
                 ? {
@@ -199,13 +189,6 @@ export default function ReservationSection({
           },
           onPending: (result) => {
             console.log("Snap payment pending:", result);
-            updatePaymentStatus(
-              reservation.code,
-              "pending",
-              result.payment_type || "Midtrans Snap",
-              amount,
-              "Customer Snap Pending"
-            );
             setCreatedReservation((prev) =>
               prev
                 ? {
@@ -250,7 +233,7 @@ export default function ReservationSection({
 
     const depositAmt = formData.payDepositNow ? DEFAULT_DEPOSIT_AMOUNT : 0;
 
-    const res = createReservation({
+    const res = await createReservation({
       customerName: formData.name.trim(),
       customerPhone: formData.phone.trim(),
       date: formData.date,

@@ -1,4 +1,5 @@
 import { ToolDefinition } from './types';
+import { TOOL_SCHEMAS, validateToolArgs, ValidationResult } from './tool-schemas';
 
 /**
  * Declarative Tool Registry (Schema Discovery & Validation only)
@@ -232,14 +233,41 @@ export class ToolRegistry {
   }
 
   /**
-   * Validate parameter completeness against tool schema
+   * Validate parameters using strict Zod schema with coercion and detailed error messages
    */
-  public static validateParams(toolName: string, params: Record<string, any>): { valid: boolean; missing: string[] } {
+  public static validateWithZod<T = any>(
+    toolName: string,
+    params: Record<string, any>
+  ): ValidationResult<T> {
+    return validateToolArgs<T>(toolName, params);
+  }
+
+  /**
+   * Validate parameter completeness against tool schema (Zod powered with fallback)
+   */
+  public static validateParams(
+    toolName: string,
+    params: Record<string, any>
+  ): { valid: boolean; missing: string[] } {
     const def = this.getDefinition(toolName);
     if (!def) return { valid: false, missing: ['tool_not_found'] };
 
+    // Use Zod validation if registered
+    if (TOOL_SCHEMAS[toolName]) {
+      const zodResult = validateToolArgs(toolName, params);
+      if (!zodResult.success) {
+        return {
+          valid: false,
+          missing: zodResult.errors || ['invalid_parameters'],
+        };
+      }
+      return { valid: true, missing: [] };
+    }
+
     const required = def.parameters.required || [];
-    const missing = required.filter((param) => params[param] === undefined || params[param] === null || params[param] === '');
+    const missing = required.filter(
+      (param) => params[param] === undefined || params[param] === null || params[param] === ''
+    );
 
     return {
       valid: missing.length === 0,

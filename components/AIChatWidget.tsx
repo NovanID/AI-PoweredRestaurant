@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { processAIChat, ChatMessage } from "../lib/ai-assistant-service";
-import { useRestaurant } from "../lib/use-restaurant";
+import { streamAIChat, processAIChat, ChatMessage } from "../lib/ai-assistant-service";
 
 interface AIChatWidgetProps {
   onTrackReservation?: (code: string) => void;
@@ -94,61 +93,97 @@ export default function AIChatWidget({
       timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const assistantMsgId = `ai-${Date.now()}`;
+    const initialAssistantMsg: ChatMessage = {
+      id: assistantMsgId,
+      sender: "assistant",
+      text: "",
+      timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setMessages((prev) => [...prev, userMsg, initialAssistantMsg]);
     if (!textToSend) setInputValue("");
     setIsTyping(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 350));
-
-      const aiResponse = await processAIChat(query, messages, pendingConfirmation);
-
-      // If AI created a reservation, auto-save the code to device localStorage
-      if (
-        aiResponse.toolCall?.name === "create_reservation" &&
-        aiResponse.toolCall.result?.success &&
-        aiResponse.toolCall.result.data?.code
-      ) {
-        const code = aiResponse.toolCall.result.data.code;
-        try {
-          const stored = localStorage.getItem("rm_recent_reservations");
-          const list: string[] = stored ? JSON.parse(stored) : [];
-          if (!list.includes(code)) {
-            list.unshift(code);
-            localStorage.setItem("rm_recent_reservations", JSON.stringify(list.slice(0, 5)));
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      const assistantMsg: ChatMessage = {
-        id: `ai-${Date.now()}`,
-        sender: "assistant",
-        text: aiResponse.reply,
-        timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-        toolCall: aiResponse.toolCall,
-        actionButtons: aiResponse.actionButtons,
-      };
-
-      setPendingConfirmation(aiResponse.pendingConfirmation || null);
-      setMessages((prev) => [...prev, assistantMsg]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ai-err-${Date.now()}`,
-          sender: "assistant",
-          text: "Maaf, terjadi kendala saat memproses permintaan Anda. Silakan coba kembali.",
-          timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+      await streamAIChat({
+        userMessage: query,
+        history: messages,
+        pendingConfirmation,
+        onDelta: (textDelta) => {
+          setIsTyping(false);
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMsgId ? { ...msg, text: msg.text + textDelta } : msg
+            )
+          );
         },
-      ]);
+        onComplete: (aiResponse) => {
+          setIsTyping(false);
+          // If AI created or confirmed a reservation, auto-save the code to device localStorage
+          if (
+            (aiResponse.toolCall?.name === "create_reservation" || aiResponse.toolCall?.name === "confirm_reservation") &&
+            aiResponse.toolCall.result?.success &&
+            aiResponse.toolCall.result.data?.code
+          ) {
+            const code = aiResponse.toolCall.result.data.code;
+            try {
+              const stored = localStorage.getItem("rm_recent_reservations");
+              const list: string[] = stored ? JSON.parse(stored) : [];
+              if (!list.includes(code)) {
+                list.unshift(code);
+                localStorage.setItem("rm_recent_reservations", JSON.stringify(list.slice(0, 5)));
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          setPendingConfirmation(aiResponse.pendingConfirmation || null);
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMsgId
+                ? {
+                    ...msg,
+                    text: msg.text || aiResponse.reply,
+                    toolCall: aiResponse.toolCall,
+                    actionButtons: aiResponse.actionButtons,
+                  }
+                : msg
+            )
+          );
+        },
+        onError: (err) => {
+          console.error("Stream chat error in widget:", err);
+          setIsTyping(false);
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMsgId && !msg.text
+                ? {
+                    ...msg,
+                    text: "Maaf, terjadi kendala saat memproses permintaan Anda. Silakan coba kembali.",
+                  }
+                : msg
+            )
+          );
+        },
+      });
+    } catch {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMsgId && !msg.text
+            ? {
+                ...msg,
+                text: "Maaf, terjadi kendala saat memproses permintaan Anda. Silakan coba kembali.",
+              }
+            : msg
+        )
+      );
     } finally {
       setIsTyping(false);
     }
   };
 
-  const { updatePaymentStatus, setReservationSnapToken } = useRestaurant();
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const ensureSnapScript = (snapUrl: string, clientKey: string): Promise<void> => {
@@ -192,7 +227,6 @@ export default function AIChatWidget({
       }
 
       const snapToken = tokenData.token;
-      setReservationSnapToken(orderCode, snapToken);
 
       if (tokenData.snapUrl && tokenData.clientKey) {
         await ensureSnapScript(tokenData.snapUrl, tokenData.clientKey);
@@ -201,13 +235,6 @@ export default function AIChatWidget({
       if (typeof window !== "undefined" && (window as any).snap) {
         (window as any).snap.pay(snapToken, {
           onSuccess: (result: any) => {
-            updatePaymentStatus(
-              orderCode,
-              "settlement",
-              result.payment_type || "Midtrans Snap",
-              amount,
-              "Customer Snap Payment (Chatbot)"
-            );
             setMessages((prev) => [
               ...prev,
               {
@@ -224,13 +251,6 @@ export default function AIChatWidget({
             setIsProcessingPayment(false);
           },
           onPending: (result: any) => {
-            updatePaymentStatus(
-              orderCode,
-              "pending",
-              result.payment_type || "Midtrans Snap",
-              amount,
-              "Customer Snap Pending (Chatbot)"
-            );
             setMessages((prev) => [
               ...prev,
               {

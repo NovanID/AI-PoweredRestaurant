@@ -1,6 +1,35 @@
 import { RestaurantProfile, Table, MenuItem, Reservation, AuditEvent } from '../types/restaurant';
 
 export const DEFAULT_TENANT_ID = 'raso-minang-padang-01';
+export const TENANT_RASO_MINANG = 'raso-minang-padang-01';
+export const TENANT_KOPI_NUSANTARA = 'kopi-nusantara-cafe-02';
+
+export interface TenantSummary {
+  id: string;
+  name: string;
+  tagline: string;
+  category: string;
+  themeColor: string;
+  city: string;
+}
+export const AVAILABLE_TENANTS: TenantSummary[] = [
+  {
+    id: TENANT_RASO_MINANG,
+    name: 'Raso Minang',
+    tagline: 'Masakan Padang Autentik & Hangat di Setiap Meja',
+    category: 'Restoran Minang Tradisional',
+    themeColor: '#8f1d20',
+    city: 'Jakarta Selatan',
+  },
+  {
+    id: TENANT_KOPI_NUSANTARA,
+    name: 'Kopi Nusantara Cafe',
+    tagline: 'Artisan Coffee Roastery & Modern Eatery',
+    category: 'Specialty Coffee & Bistro',
+    themeColor: '#4a2c1d',
+    city: 'Jakarta Selatan',
+  },
+];
 
 export const initialRestaurantProfile: RestaurantProfile = {
   tenantId: DEFAULT_TENANT_ID,
@@ -319,3 +348,282 @@ export const initialAuditEvents: AuditEvent[] = [
     tenantId: DEFAULT_TENANT_ID,
   },
 ];
+
+// ==========================================
+// TENANT B: KOPI NUSANTARA ARTISAN CAFE
+// ==========================================
+export const kopiNusantaraProfile: RestaurantProfile = {
+  tenantId: TENANT_KOPI_NUSANTARA,
+  name: 'Kopi Nusantara Cafe',
+  tagline: 'Artisan Coffee Roastery & Modern Eatery',
+  address: 'Jl. Senopati Raya No. 42, Kebayoran Baru',
+  city: 'Jakarta Selatan',
+  phone: '+62 821-8899-0011',
+  openingHours: 'Setiap Hari: 08:00 – 23:00 WIB',
+  openTime: '08:00',
+  closeTime: '23:00',
+  description: 'Ruang santai modern dengan sajian biji kopi Nusantara single origin (Gayo, Toraja, Kintamani) dipadukan hidangan artisan pastry, pasta, dan comfort food.',
+  policies: [
+    'Batas waktu reservasi meja kopi 2 jam saat jam sibuk (peak hour: 12.00-14.00 & 18.00-21.00).',
+    'Area indoor non-smoking ber-AC dengan Wi-Fi 100Mbps dan colokan di setiap meja.',
+    'Area outdoor garden teras ramah hewan peliharaan (pet-friendly) dan smoking area.',
+    'Toleransi keterlambatan maksimal 15 menit sebelum slot dialihkan ke antrean walk-in.'
+  ]
+};
+
+export const kopiNusantaraTables: Table[] = [
+  { id: 'kn-tbl-1', number: 'K-01', capacity: 2, area: 'Indoor', status: 'available', tenantId: TENANT_KOPI_NUSANTARA },
+  { id: 'kn-tbl-2', number: 'K-02', capacity: 2, area: 'Indoor', status: 'available', tenantId: TENANT_KOPI_NUSANTARA },
+  { id: 'kn-tbl-3', number: 'K-03', capacity: 2, area: 'Indoor', status: 'available', tenantId: TENANT_KOPI_NUSANTARA },
+  { id: 'kn-tbl-4', number: 'K-04', capacity: 4, area: 'Indoor', status: 'available', tenantId: TENANT_KOPI_NUSANTARA },
+  { id: 'kn-tbl-5', number: 'K-05', capacity: 4, area: 'Indoor', status: 'occupied', tenantId: TENANT_KOPI_NUSANTARA },
+  { id: 'kn-tbl-6', number: 'K-06', capacity: 4, area: 'Outdoor', status: 'available', tenantId: TENANT_KOPI_NUSANTARA },
+  { id: 'kn-tbl-7', number: 'K-07', capacity: 4, area: 'Outdoor', status: 'occupied', tenantId: TENANT_KOPI_NUSANTARA },
+  { id: 'kn-tbl-8', number: 'K-08', capacity: 6, area: 'Outdoor', status: 'available', tenantId: TENANT_KOPI_NUSANTARA },
+  { id: 'kn-tbl-9', number: 'VIP-KN', capacity: 8, area: 'VIP', status: 'available', tenantId: TENANT_KOPI_NUSANTARA },
+];
+
+export const kopiNusantaraMenuItems: MenuItem[] = [
+  // Minuman (Coffee & Non-Coffee)
+  {
+    id: 'kn-menu-1',
+    name: 'Single Origin V60 Pour Over (Aceh Gayo)',
+    category: 'Minuman',
+    price: 35000,
+    description: 'Seduhan manual biji Arabika Aceh Gayo dengan aroma floral, keasaman sitrus segar, dan aftertaste karamel manis.',
+    isAvailable: true,
+    isPopular: true,
+    spicinessLevel: 1,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+  {
+    id: 'kn-menu-2',
+    name: 'Kopi Susu Senopati Gula Aren',
+    category: 'Minuman',
+    price: 28000,
+    description: 'Espresso blend house specialty, susu segar creamy, dan sirup gula aren organik Garut.',
+    isAvailable: true,
+    isPopular: true,
+    spicinessLevel: 1,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+  {
+    id: 'kn-menu-3',
+    name: 'Kyoto Drip Slow Cold Brew',
+    category: 'Minuman',
+    price: 38000,
+    description: 'Ekstraksi dingin tetes demi tetes selama 12 jam menghasilkan cita rasa pekat, halus, dan rendah asam.',
+    isAvailable: true,
+    isPopular: false,
+    spicinessLevel: 1,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+  {
+    id: 'kn-menu-4',
+    name: 'Matcha Latte Uji Kyoto',
+    category: 'Minuman',
+    price: 34000,
+    description: 'Bubuk ceremonial grade matcha asli Jepang berpadu susu creamy lembut dengan latte art.',
+    isAvailable: true,
+    isPopular: true,
+    spicinessLevel: 1,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+
+  // Makanan Utama (Lauk Utama)
+  {
+    id: 'kn-menu-5',
+    name: 'Nusantara Wagyu Fried Rice',
+    category: 'Lauk Utama',
+    price: 55000,
+    description: 'Nasi goreng racikan kecap manis aromatik dengan irisan daging wagyu juicy, telur mata sapi, dan acar segar.',
+    isAvailable: true,
+    isPopular: true,
+    spicinessLevel: 2,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+  {
+    id: 'kn-menu-6',
+    name: 'Creamy Truffle Fettuccine',
+    category: 'Lauk Utama',
+    price: 58000,
+    description: 'Pasta fettuccine al dente dalam saus krim parmesan harum minyak truffle putih dan jamur champignon.',
+    isAvailable: true,
+    isPopular: true,
+    spicinessLevel: 1,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+  {
+    id: 'kn-menu-7',
+    name: 'Smoked Beef Croissant Sandwich',
+    category: 'Lauk Utama',
+    price: 45000,
+    description: 'Croissant renyah berlapis butter dengan isian daging asap premium, keju cheddar leleh, selada romaine, dan saus honey mustard.',
+    isAvailable: true,
+    isPopular: false,
+    spicinessLevel: 1,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+
+  // Snack & Pastry (Pelengkap & Sambal)
+  {
+    id: 'kn-menu-8',
+    name: 'Classic French Butter Croissant',
+    category: 'Pelengkap & Sambal',
+    price: 25000,
+    description: 'Pastry khas Prancis dipanggang renyah keemasan dengan lapisan mentega Prancis wangi dan gurih.',
+    isAvailable: true,
+    isPopular: true,
+    spicinessLevel: 1,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+  {
+    id: 'kn-menu-9',
+    name: 'Crispy Truffle Parmesan Fries',
+    category: 'Pelengkap & Sambal',
+    price: 32000,
+    description: 'Kentang goreng renyah bertabur keju parmesan parut dan aroma minyak truffle gurih nikmat.',
+    isAvailable: true,
+    isPopular: true,
+    spicinessLevel: 1,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+  {
+    id: 'kn-menu-10',
+    name: 'Cireng Krispi Sambal Rujak Aren',
+    category: 'Pelengkap & Sambal',
+    price: 24000,
+    description: 'Camilan aci goreng renyah di luar kenyal di dalam dengan cocolan sambal rujak manis asam pedas.',
+    isAvailable: true,
+    isPopular: false,
+    spicinessLevel: 2,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+
+  // Sayur & Kuah (Soup & Healthy)
+  {
+    id: 'kn-menu-11',
+    name: 'Classic Caesar Salad with Grilled Chicken',
+    category: 'Sayur & Kuah',
+    price: 42000,
+    description: 'Selada romaine segar, potongan ayam panggang herb, crouton garing, telur rebus, dan dressing caesar gurih.',
+    isAvailable: true,
+    isPopular: false,
+    spicinessLevel: 1,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+  {
+    id: 'kn-menu-12',
+    name: 'Creamy Wild Mushroom Soup & Garlic Toast',
+    category: 'Sayur & Kuah',
+    price: 38000,
+    description: 'Sup krim kental dari 3 jenis jamur hutan gurih disajikan dengan roti panggang bawang putih hangat.',
+    isAvailable: true,
+    isPopular: false,
+    spicinessLevel: 1,
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+];
+
+export const kopiNusantaraReservations: Reservation[] = [
+  {
+    id: 'kn-res-1',
+    code: 'KN-2001',
+    customerName: 'Dimas Prasetyo',
+    customerPhone: '081211223344',
+    tableId: 'kn-tbl-5',
+    tableNumber: 'K-05',
+    tableArea: 'Indoor',
+    date: '2026-08-22',
+    time: '14:00',
+    guestCount: 4,
+    status: 'seated',
+    autoConfirmed: true,
+    qrToken: 'QR-KN-2001-VERIFIED',
+    seatedAt: '2026-08-22T14:05:00Z',
+    paymentStatus: 'settlement',
+    paymentAmount: 150000,
+    paymentMethod: 'qris',
+    notes: 'Diskusi kerja santai, butuh meja dekat colokan laptop.',
+    orderItems: [
+      { menuItemId: 'kn-menu-1', name: 'Single Origin V60 Pour Over (Aceh Gayo)', price: 35000, quantity: 2 },
+      { menuItemId: 'kn-menu-6', name: 'Creamy Truffle Fettuccine', price: 58000, quantity: 1 },
+      { menuItemId: 'kn-menu-8', name: 'Classic French Butter Croissant', price: 25000, quantity: 1 },
+    ],
+    orderTotal: 153000,
+    tenantId: TENANT_KOPI_NUSANTARA,
+    createdAt: '2026-08-22T11:00:00Z',
+    updatedAt: '2026-08-22T14:05:00Z',
+  },
+  {
+    id: 'kn-res-2',
+    code: 'KN-2002',
+    customerName: 'Jessica Tan',
+    customerPhone: '081399887766',
+    tableId: 'kn-tbl-7',
+    tableNumber: 'K-07',
+    tableArea: 'Outdoor',
+    date: '2026-08-22',
+    time: '16:30',
+    guestCount: 2,
+    status: 'seated',
+    autoConfirmed: true,
+    qrToken: 'QR-KN-2002-VERIFIED',
+    seatedAt: '2026-08-22T16:35:00Z',
+    paymentStatus: 'unpaid',
+    paymentAmount: 70000,
+    notes: 'Bawa anjing kecil (area outdoor ramah peliharaan).',
+    orderItems: [
+      { menuItemId: 'kn-menu-2', name: 'Kopi Susu Senopati Gula Aren', price: 28000, quantity: 1 },
+      { menuItemId: 'kn-menu-4', name: 'Matcha Latte Uji Kyoto', price: 34000, quantity: 1 },
+    ],
+    orderTotal: 62000,
+    tenantId: TENANT_KOPI_NUSANTARA,
+    createdAt: '2026-08-22T13:10:00Z',
+    updatedAt: '2026-08-22T16:35:00Z',
+  },
+];
+
+export const kopiNusantaraAuditEvents: AuditEvent[] = [
+  {
+    id: 'kn-aud-1',
+    actor: 'Barista / Kasir Cafe',
+    action: 'GUEST_CHECKIN_SEATED',
+    entity: 'Reservasi KN-2001',
+    timestamp: '2026-08-22T14:05:00Z',
+    details: 'Tamu Dimas Prasetyo check-in di Meja K-05. Pesanan kopi V60 & Fettuccine dicatat di POS.',
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+  {
+    id: 'kn-aud-2',
+    actor: 'Sistem Reservasi Otomatis',
+    action: 'AUTO_CONFIRM_RESERVATION',
+    entity: 'Reservasi KN-2002',
+    timestamp: '2026-08-22T13:10:00Z',
+    details: 'Slot Meja K-07 (Outdoor) terkunci untuk Jessica Tan (2 Tamu).',
+    tenantId: TENANT_KOPI_NUSANTARA,
+  },
+];
+
+/**
+ * Helper to get initial tenant bundle
+ */
+export function getTenantInitialData(tenantId: string) {
+  if (tenantId === TENANT_KOPI_NUSANTARA) {
+    return {
+      profile: kopiNusantaraProfile,
+      tables: kopiNusantaraTables,
+      menu: kopiNusantaraMenuItems,
+      reservations: kopiNusantaraReservations,
+      auditEvents: kopiNusantaraAuditEvents,
+    };
+  }
+
+  return {
+    profile: initialRestaurantProfile,
+    tables: initialTables,
+    menu: initialMenuItems,
+    reservations: initialReservations,
+    auditEvents: initialAuditEvents,
+  };
+}

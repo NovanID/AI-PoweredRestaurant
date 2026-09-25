@@ -18,6 +18,7 @@ import {
   initialMenuItems,
   initialReservations,
   initialAuditEvents,
+  getTenantInitialData,
 } from './mock-data';
 
 const STORAGE_KEYS = {
@@ -63,6 +64,31 @@ class RestaurantStore {
     } catch (e) {
       console.warn('Failed to load restaurant store from localStorage, using in-memory defaults:', e);
     }
+  }
+
+  public hydrateFromDb(data: {
+    profile?: RestaurantProfile;
+    tables?: Table[];
+    menu?: MenuItem[];
+    reservations?: Reservation[];
+    auditEvents?: AuditEvent[];
+  }) {
+    if (data.profile) this.profile = data.profile;
+    if (Array.isArray(data.tables)) this.tables = data.tables;
+    if (Array.isArray(data.menu)) this.menu = data.menu;
+    if (Array.isArray(data.reservations)) this.reservations = data.reservations;
+    if (Array.isArray(data.auditEvents)) this.auditEvents = data.auditEvents;
+    this.persist();
+  }
+
+  public switchTenant(tenantId: string) {
+    const fallback = getTenantInitialData(tenantId);
+    this.profile = JSON.parse(JSON.stringify(fallback.profile));
+    this.tables = JSON.parse(JSON.stringify(fallback.tables));
+    this.menu = JSON.parse(JSON.stringify(fallback.menu));
+    this.reservations = JSON.parse(JSON.stringify(fallback.reservations));
+    this.auditEvents = JSON.parse(JSON.stringify(fallback.auditEvents));
+    this.notify();
   }
 
   private persist() {

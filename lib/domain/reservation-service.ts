@@ -9,6 +9,8 @@ import {
 import { restaurantStore } from '../restaurant-store';
 import { BusinessRuleEngine } from './business-rules';
 
+import { RedisLeaseManager } from '../infrastructure/redis-lease-manager';
+
 export interface AvailabilityResult {
   available: boolean;
   availableTables: Table[];
@@ -16,9 +18,6 @@ export interface AvailabilityResult {
 }
 
 export class ReservationService {
-  // In-memory hold leases table (in production backed by Redis with TTL)
-  private static holdLeases: Map<string, TableHoldLease> = new Map();
-
   /**
    * Helper: check if two time slots overlap (assuming standard 90 mins slot)
    */
@@ -31,27 +30,15 @@ export class ReservationService {
   }
 
   /**
-   * Clean up expired leases
+   * 1. Check Table Availability (checks reservations & Redis hold leases)
    */
-  private static purgeExpiredLeases(): void {
-    const now = Date.now();
-    for (const [token, lease] of this.holdLeases.entries()) {
-      if (lease.expiresAt < now) {
-        this.holdLeases.delete(token);
-      }
-    }
-  }
-
-  /**
-   * 1. Check Table Availability
-   */
-  public static checkAvailability(params: {
+  public static async checkAvailability(params: {
     tenantId: TenantId;
     date: string;
     time: string;
     guestCount: number;
     preferredArea?: TableArea;
-  }): AvailabilityResult {
+  }): Promise<AvailabilityResult> {
     const { date, time, guestCount, preferredArea } = params;
     const profile = restaurantStore.getProfile();
 
@@ -66,8 +53,6 @@ export class ReservationService {
     if (!capacityCheck.passed) {
       return { available: false, availableTables: [], reason: capacityCheck.message };
     }
-
-    this.purgeExpiredLeases();
 
     const allTables = restaurantStore.getTables();
     const suitableTables = allTables.filter((tbl) => {
@@ -87,7 +72,7 @@ export class ReservationService {
       };
     }
 
-    // Filter out tables that already have active reservations or active hold leases
+    // Filter out tables that already have active reservations
     const activeReservations = restaurantStore.getAllReservations().filter((r) => {
       if (r.date !== date) return false;
       if (r.status === 'confirmed' || r.status === 'seated' || r.status === 'pending') {
@@ -96,13 +81,15 @@ export class ReservationService {
       return false;
     });
 
-    const activeLeases = Array.from(this.holdLeases.values()).filter((l) => {
+    // Check active hold leases from RedisLeaseManager
+    const activeLeases = await RedisLeaseManager.getAllActiveLeases();
+    const activeTimeLeases = activeLeases.filter((l) => {
       return l.date === date && this.isTimeOverlap(l.time, time);
     });
 
     const freeTables = suitableTables.filter((tbl) => {
       const hasResConflict = activeReservations.some((r) => r.tableId === tbl.id);
-      const hasLeaseConflict = activeLeases.some((l) => l.tableId === tbl.id);
+      const hasLeaseConflict = activeTimeLeases.some((l) => l.tableId === tbl.id);
       return !hasResConflict && !hasLeaseConflict;
     });
 
@@ -121,9 +108,9 @@ export class ReservationService {
   }
 
   /**
-   * 2. Two-Phase Hold Lease (Prevents Double Booking)
+   * 2. Two-Phase Hold Lease (Prevents Double Booking via Redis)
    */
-  public static createHoldLease(params: {
+  public static async createHoldLease(params: {
     tenantId: TenantId;
     conversationId: string;
     customerName: string;
@@ -133,8 +120,8 @@ export class ReservationService {
     guestCount: number;
     preferredArea?: TableArea;
     notes?: string;
-  }): { success: boolean; lease?: TableHoldLease; message: string } {
-    const avail = this.checkAvailability(params);
+  }): Promise<{ success: boolean; lease?: TableHoldLease; message: string }> {
+    const avail = await this.checkAvailability(params);
     if (!avail.available || avail.availableTables.length === 0) {
       return {
         success: false,
@@ -159,26 +146,20 @@ export class ReservationService {
       expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes lease
     };
 
-    this.holdLeases.set(leaseToken, lease);
-
-    return {
-      success: true,
-      lease,
-      message: `Slot Meja ${selectedTable.number} (${selectedTable.area}) berhasil dikunci sementara selama 10 menit.`,
-    };
+    return await RedisLeaseManager.createHoldLease(lease, 600);
   }
 
   /**
-   * 3. Atomic Commit of Leased Reservation
+   * 3. Atomic Commit of Leased Reservation (Releases Redis lock on completion)
    */
-  public static commitLeasedReservation(params: {
+  public static async commitLeasedReservation(params: {
     leaseToken: string;
     customerName: string;
     customerPhone?: string;
     notes?: string;
     actor?: string;
-  }): { success: boolean; reservation?: Reservation; message: string } {
-    const lease = this.holdLeases.get(params.leaseToken);
+  }): Promise<{ success: boolean; reservation?: Reservation; message: string }> {
+    const lease = await RedisLeaseManager.getHoldLease(params.leaseToken);
     if (!lease) {
       return {
         success: false,
@@ -187,7 +168,7 @@ export class ReservationService {
     }
 
     if (Date.now() > lease.expiresAt) {
-      this.holdLeases.delete(params.leaseToken);
+      await RedisLeaseManager.releaseHoldLease(params.leaseToken);
       return {
         success: false,
         message: 'Kunci slot meja sementara telah habis waktu (10 menit). Silakan pilih kembali jam yang diinginkan.',
@@ -208,7 +189,7 @@ export class ReservationService {
 
     // Remove lease on success
     if (result.success) {
-      this.holdLeases.delete(params.leaseToken);
+      await RedisLeaseManager.releaseHoldLease(params.leaseToken);
     }
 
     return result;

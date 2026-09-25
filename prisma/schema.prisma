@@ -24,10 +24,10 @@ enum TableStatus {
 }
 
 enum MenuCategory {
-  LAUK_UTAMA        @map("Lauk Utama")
-  SAYUR_KUAH        @map("Sayur & Kuah")
-  PELENGKAP_SAMBAL  @map("Pelengkap & Sambal")
-  MINUMAN           @map("Minuman")
+  LAUK_UTAMA       @map("Lauk Utama")
+  SAYUR_KUAH       @map("Sayur & Kuah")
+  PELENGKAP_SAMBAL @map("Pelengkap & Sambal")
+  MINUMAN          @map("Minuman")
 }
 
 enum ReservationStatus {
@@ -42,20 +42,20 @@ enum ReservationStatus {
 }
 
 model Restaurant {
-  id           String        @id @default(uuid())
-  tenantId     String        @unique @map("tenant_id")
+  id           String   @id @default(uuid())
+  tenantId     String   @unique @map("tenant_id")
   name         String
   tagline      String?
   address      String
   city         String
   phone        String
-  openingHours String        @map("opening_hours")
-  openTime     String        @default("10:00") @map("open_time")
-  closeTime    String        @default("22:00") @map("close_time")
+  openingHours String   @map("opening_hours")
+  openTime     String   @default("10:00") @map("open_time")
+  closeTime    String   @default("22:00") @map("close_time")
   description  String?
-  policies     Json?         @default("[]")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  policies     Json?    @default("[]")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   tables       Table[]
   menuItems    MenuItem[]
@@ -67,14 +67,14 @@ model Restaurant {
 }
 
 model Table {
-  id           String        @id @default(uuid())
-  tenantId     String        @map("tenant_id")
-  tableNumber  String        @map("table_number")
-  capacity     Int
-  area         TableArea     @default(Indoor)
-  status       TableStatus   @default(available)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  id          String      @id @default(uuid())
+  tenantId    String      @map("tenant_id")
+  tableNumber String      @map("table_number")
+  capacity    Int
+  area        TableArea   @default(Indoor)
+  status      TableStatus @default(available)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   restaurant   Restaurant    @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
   reservations Reservation[]
@@ -97,23 +97,23 @@ model MenuItem {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
-  restaurant     Restaurant   @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
 
   @@index([tenantId, category, isAvailable])
   @@map("menu_items")
 }
 
 model Customer {
-  id               String       @id @default(uuid())
-  tenantId         String       @map("tenant_id")
+  id               String    @id @default(uuid())
+  tenantId         String    @map("tenant_id")
   name             String
   phone            String
-  reservationCount Int          @default(1) @map("reservation_count")
-  lastVisit        DateTime?    @map("last_visit")
-  createdAt        DateTime     @default(now()) @map("created_at")
-  updatedAt        DateTime     @updatedAt @map("updated_at")
+  reservationCount Int       @default(1) @map("reservation_count")
+  lastVisit        DateTime? @map("last_visit")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  restaurant       Restaurant   @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
 
   @@unique([tenantId, phone])
   @@map("customers")
@@ -133,7 +133,7 @@ model Reservation {
   code            String            @unique // e.g. RM-1001
   customerName    String            @map("customer_name")
   customerPhone   String            @map("customer_phone")
-  tableId         String            @map("table_id")
+  tableId         String?           @map("table_id")
   tableNumber     String            @map("table_number")
   tableArea       TableArea         @map("table_area")
   reservationDate String            @map("reservation_date") // YYYY-MM-DD
@@ -146,17 +146,19 @@ model Reservation {
   completedAt     DateTime?         @map("completed_at")
   expiresAt       DateTime?         @map("expires_at")
   paymentStatus   PaymentStatus     @default(unpaid) @map("payment_status")
-  paymentAmount   Decimal?          @db.Decimal(12, 2) @map("payment_amount")
+  paymentAmount   Decimal?          @map("payment_amount") @db.Decimal(12, 2)
   paymentMethod   String?           @map("payment_method")
   snapToken       String?           @map("snap_token")
   paymentPaidAt   DateTime?         @map("payment_paid_at")
   notes           String?
   rejectionReason String?           @map("rejection_reason")
+  orderItems      Json?             @default("[]") @map("order_items")
+  orderTotal      Decimal?          @map("order_total") @db.Decimal(12, 2)
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
 
-  restaurant      Restaurant        @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
-  table           Table             @relation(fields: [tableId], references: [id])
+  restaurant Restaurant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
+  table      Table?     @relation(fields: [tableId], references: [id])
 
   @@index([tenantId, reservationDate, reservationTime, status])
   @@index([tenantId, paymentStatus])
@@ -164,13 +166,13 @@ model Reservation {
 }
 
 model AuditEvent {
-  id         String     @id @default(uuid())
-  tenantId   String     @map("tenant_id")
-  actor      String
-  action     String
-  entity     String
-  details    String?
-  createdAt  DateTime   @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  actor     String
+  action    String
+  entity    String
+  details   String?
+  createdAt DateTime @default(now()) @map("created_at")
 
   restaurant Restaurant @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade)
 

@@ -1,26 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSnapTransaction, getMidtransConfig } from '../../../../lib/midtrans';
+import { z } from 'zod';
+import {
+  createSnapTransaction,
+  getExpectedPaymentAmount,
+  getMidtransConfig,
+  isExpectedPaymentAmount,
+} from '../../../../lib/midtrans';
+import { PrismaRestaurantRepository } from '../../../../lib/db/prisma-repository';
+
+const PaymentTokenRequestSchema = z.object({
+  orderId: z.string().trim().min(1, 'orderId (Kode Reservasi) wajib diisi.'),
+  amount: z.coerce.number().positive('Nominal pembayaran (amount) harus lebih besar dari 0.'),
+  customerName: z.string().optional(),
+  customerPhone: z.string().optional(),
+  customerEmail: z.string().email('Format email tidak valid').optional().or(z.literal('')),
+  notes: z.string().optional(),
+});
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { orderId, amount, customerName, customerPhone, customerEmail, notes, itemDetails } = body;
+    const rawBody = await req.json();
+    const parseResult = PaymentTokenRequestSchema.safeParse(rawBody);
 
-    // Validate required inputs
-    if (!orderId) {
+    if (!parseResult.success) {
+      const errorMsg = parseResult.error.issues.map((i) => i.message).join(', ');
       return NextResponse.json(
-        { success: false, message: 'orderId (Kode Reservasi) wajib diisi.' },
+        { success: false, message: errorMsg },
         { status: 400 }
       );
     }
 
-    const grossAmount = Number(amount);
-    if (!grossAmount || grossAmount <= 0) {
+    const { orderId, amount: requestedAmount } = parseResult.data;
+    const reservation = await PrismaRestaurantRepository.lookupReservation(orderId);
+
+    if (!reservation) {
       return NextResponse.json(
-        { success: false, message: 'Nominal pembayaran (amount) harus lebih besar dari 0.' },
+        { success: false, message: `Pesanan ${orderId} tidak ditemukan di PostgreSQL.` },
+        { status: 404 }
+      );
+    }
+
+    if (reservation.paymentStatus === 'settlement') {
+      return NextResponse.json(
+        { success: false, message: `Pesanan ${orderId} sudah lunas.` },
+        { status: 409 }
+      );
+    }
+
+    if (!isExpectedPaymentAmount(reservation, requestedAmount)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Nominal pembayaran tidak cocok. Tagihan: Rp ${getExpectedPaymentAmount(reservation).toLocaleString('id-ID')}.`,
+        },
         { status: 400 }
       );
     }
+
+    const grossAmount = getExpectedPaymentAmount(reservation);
 
     const config = getMidtransConfig();
 
@@ -29,20 +66,22 @@ export async function POST(req: NextRequest) {
       orderId,
       grossAmount,
       customerDetails: {
-        firstName: customerName || 'Pelanggan Raso Minang',
-        phone: customerPhone || undefined,
-        email: customerEmail || 'customer@rasominang.com',
+        firstName: reservation.customerName,
+        phone: reservation.customerPhone === '-' ? undefined : reservation.customerPhone,
+        email: 'customer@rasominang.com',
       },
-      itemDetails: itemDetails || [
+      itemDetails: [
         {
           id: `DEP-${orderId}`,
-          name: `Deposit Meja (${orderId})`,
+          name: `Pembayaran Pesanan (${orderId})`,
           price: grossAmount,
           quantity: 1,
         },
       ],
-      notes,
+      notes: reservation.notes,
     });
+
+    await PrismaRestaurantRepository.setSnapTokenByCode(orderId, snapResult.token);
 
     return NextResponse.json({
       success: true,

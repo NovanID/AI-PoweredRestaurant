@@ -82,7 +82,7 @@ export default function AIChatMonitoringTab() {
 
     const testSession: ConversationSession = {
       sessionId: `sim-${Date.now()}`,
-      tenantId: profile.tenantId || "tenant_rasominang_01",
+      tenantId: profile.tenantId,
       state: "IDLE",
       stateVersion: 1,
       history: [],

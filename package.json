@@ -8,11 +8,20 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.66",
+    "@ai-sdk/react": "^4.0.102",
+    "@orama/orama": "^3.1.18",
+    "@prisma/client": "^6.19.3",
     "@tailwindcss/postcss": "latest",
+    "@upstash/redis": "^1.38.4",
+    "ai": "^7.0.99",
     "next": "latest",
+    "prisma": "^6.19.3",
     "react": "latest",
     "react-dom": "latest",
-    "tailwindcss": "latest"
+    "tailwindcss": "latest",
+    "tsx": "^4.23.13",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "latest",

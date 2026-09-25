@@ -1,3 +1,4 @@
+import { createOpenAI } from '@ai-sdk/openai';
 import { ToolRegistry } from './tool-registry';
 
 export interface GeminiResponse {
@@ -14,23 +15,35 @@ export interface GeminiResponse {
  * Kept class name "GeminiClient" to avoid touching every import site.
  */
 export class GeminiClient {
-  private static getBaseUrl(): string {
+  public static getBaseUrl(): string {
     return (process.env.AI_BASE_URL || 'http://localhost:20128/v1').trim();
   }
 
-  private static getApiKey(): string {
+  public static getApiKey(): string {
     const rawKey = process.env.AI_API_KEY || '';
     // Strip non-ASCII characters to prevent "String contains non ISO-8859-1 code point" in HTTP headers
     return rawKey.replace(/[^\x00-\x7F]/g, '').trim();
   }
 
-  private static getModelName(): string {
+  public static getModelName(): string {
     return (process.env.AI_MODEL || 'dashscope/qwen-plus').trim();
   }
 
-  private static getTimeoutMs(): number {
+  public static getTimeoutMs(): number {
     const envTimeout = parseInt(process.env.AI_TIMEOUT_MS || '', 10);
     return !isNaN(envTimeout) && envTimeout > 0 ? envTimeout : 120000; // 120 seconds default for reasoning models
+  }
+
+  /**
+   * Get configured Vercel AI SDK LanguageModel for streaming & tool calling
+   */
+  public static getAIModel(modelOverride?: string) {
+    const openai = createOpenAI({
+      baseURL: this.getBaseUrl(),
+      apiKey: this.getApiKey() || 'sk-placeholder',
+    });
+    const model = modelOverride || this.getModelName();
+    return openai.chat(model);
   }
 
   /**

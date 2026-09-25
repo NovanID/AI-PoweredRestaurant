@@ -11,6 +11,8 @@ type AdminTab = "reservations" | "tables" | "pos" | "menu" | "audit" | "ai_monit
 export default function AdminDashboard() {
   const {
     isClient,
+    isDbConnected,
+    refresh,
     profile,
     tables,
     menu,
@@ -28,6 +30,9 @@ export default function AdminDashboard() {
     markAsNoShow,
     autoReleaseExpiredLocks,
     resetToDefaults,
+    tenantId,
+    setTenantId,
+    availableTenants,
   } = useRestaurant();
 
   const [activeTab, setActiveTab] = useState<AdminTab>("reservations");
@@ -307,16 +312,69 @@ export default function AdminDashboard() {
             </Link>
             <div className="h-4 w-px bg-white/20"></div>
             <div>
-              <h1 className="font-serif text-lg font-bold text-white flex items-center gap-2">
-                <span>Dashboard Staf — {profile.name}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#d8a43b] text-[#261b17] font-sans font-extrabold uppercase">
-                  Tenant: {profile.tenantId}
+              <div className="flex items-center gap-2">
+                <h1 className="font-serif text-lg font-bold text-white flex items-center gap-2">
+                  <span>Dashboard Staf</span>
+                  <span className="text-white/40">·</span>
+                  <span className="text-[#ffd98a]">{profile.name}</span>
+                </h1>
+                <span
+                  className={`inline-flex items-center gap-1.5 text-[10px] px-2.5 py-0.5 rounded-full font-sans font-bold border transition-colors ${
+                    isDbConnected
+                      ? "bg-emerald-950/80 text-emerald-300 border-emerald-500/30"
+                      : "bg-amber-950/80 text-amber-300 border-amber-500/30"
+                  }`}
+                  title={isDbConnected ? "Terkoneksi langsung ke database PostgreSQL" : "Mode Fallback Lokal"}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${isDbConnected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`}></span>
+                  {isDbConnected ? "PostgreSQL Live" : "Local Mode"}
                 </span>
-              </h1>
+              </div>
+
+              {/* Multi-Tenant Switcher */}
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[11px] text-[#a3948e] font-sans flex items-center gap-1">
+                  <span>🏢 Tenant:</span>
+                </span>
+                <select
+                  value={tenantId}
+                  onChange={(e) => {
+                    const newId = e.target.value;
+                    setTenantId(newId);
+                    setSelectedTableForPos("");
+                    setPosCart({});
+                    showFeedback(`Beralih ke tenant: ${availableTenants.find((t) => t.id === newId)?.name || newId}`);
+                  }}
+                  className="bg-[#3d2c26] text-amber-200 text-xs font-semibold px-2 py-0.5 rounded-md border border-amber-500/30 focus:outline-none focus:border-amber-400 cursor-pointer"
+                  title="Pilih Tenant Restoran (Multi-Tenant SaaS)"
+                >
+                  {availableTenants.map((t) => (
+                    <option key={t.id} value={t.id} className="text-black bg-white">
+                      {t.id === "raso-minang-padang-01" ? "🍲 " : "☕ "}
+                      {t.name} ({t.city})
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/20 font-mono">
+                  SaaS Vision Active
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-3 text-xs">
+            <button
+              onClick={() => {
+                refresh();
+                showFeedback("Menyinkronkan data dengan database PostgreSQL...");
+              }}
+              className="px-2.5 py-1.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/15 text-white/90 hover:text-white hover:border-white/40 transition-colors text-[11px] flex items-center gap-1.5 cursor-pointer font-medium"
+              title="Sinkronisasi manual dengan PostgreSQL"
+            >
+              <span>🔄</span>
+              <span>Sync DB</span>
+            </button>
+
             <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
               <span className="text-[#a3948e]">Staf Aktif:</span>
               <select
