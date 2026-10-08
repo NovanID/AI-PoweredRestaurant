@@ -59,6 +59,17 @@ test('executes pending protected tool after explicit confirmation', async () => 
   assert.match(confirmed.reply, /Reservasi/);
 });
 
+test('formats menu tool results with item names and prices, not only counts', async () => {
+  const menuProvider = fakeProviderWithToolCall('get_menu', { search: 'rendang' });
+
+  const res = await processAIChatServer({ message: 'Berapa harga rendang?' }, { provider: menuProvider });
+
+  assert.equal(res.toolCalls?.[0].name, 'get_menu');
+  assert.match(res.reply, /Rendang Daging Sapi/);
+  assert.match(res.reply, /Rp35\.000/);
+  assert.doesNotMatch(res.reply, /^Ditemukan \d+ menu yang cocok\.?$/);
+});
+
 test('grounds menu facts through tools even when provider returns plain text', async () => {
   const plainTextProvider: LLMProvider = {
     async chat() {

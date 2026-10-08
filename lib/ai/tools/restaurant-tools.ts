@@ -19,6 +19,27 @@ function success(message: string, data?: unknown, userSafeMessage?: string): Too
   return { success: true, data, message, userSafeMessage };
 }
 
+function formatRupiah(value: number): string {
+  return `Rp${value.toLocaleString('id-ID')}`;
+}
+
+function formatMenuReply(items: Array<{ name: string; price: number; description: string; isAvailable: boolean }>, context: string): string {
+  if (items.length === 0) {
+    return `Maaf, tidak ditemukan menu yang cocok${context ? ` untuk ${context}` : ''}.`;
+  }
+
+  const visibleItems = items.slice(0, 6);
+  const list = visibleItems
+    .map((item) => {
+      const status = item.isAvailable ? 'Tersedia' : 'Habis';
+      return `• ${item.name} — ${formatRupiah(item.price)} (${status})\n  ${item.description}`;
+    })
+    .join('\n\n');
+
+  const remaining = items.length > visibleItems.length ? `\n\nDan ${items.length - visibleItems.length} menu lainnya.` : '';
+  return `Ditemukan ${items.length} menu yang cocok${context ? ` untuk ${context}` : ''}:\n\n${list}${remaining}`;
+}
+
 export const restaurantTools: AIToolDefinition[] = [
   {
     name: 'get_restaurant_info',
@@ -41,7 +62,8 @@ export const restaurantTools: AIToolDefinition[] = [
       const category = asString(params.category) as MenuCategory | 'Semua' | undefined;
       const search = asString(params.search);
       const items = restaurantStore.getMenuItems(category, search);
-      return success(`Ditemukan ${items.length} menu yang cocok.`, items);
+      const context = search || (category && category !== 'Semua' ? `kategori ${category}` : '');
+      return success(`Ditemukan ${items.length} menu yang cocok.`, items, formatMenuReply(items, context));
     },
   },
   {
@@ -52,7 +74,7 @@ export const restaurantTools: AIToolDefinition[] = [
       const params = objectInput(input);
       const search = asString(params.search) || '';
       const items = restaurantStore.getMenuItems('Semua', search);
-      return success(`Ditemukan ${items.length} menu yang cocok untuk "${search}".`, items);
+      return success(`Ditemukan ${items.length} menu yang cocok untuk "${search}".`, items, formatMenuReply(items, `"${search}"`));
     },
   },
   {
