@@ -1,0 +1,101 @@
+TIMELINE MAGANG — AI RESTAURANT SAAS,,,,,,,,,,,,,,,,,,,,,,,,
+Periode 3 Agustus 2026 – 4 Januari 2027 | berdasarkan daily internship reports,,,,,,,,,,,,,,,,,,,,,,,,
+,,August 2026,,,,,September 2026,,,,October 2026,,,,November 2026,,,,,December 2026,,,,January 2027
+No,Kegiatan,"M1
+03–09","M2
+10–16","M3
+17–23","M4
+24–30","M5
+31–06","M6
+07–13","M7
+14–20","M8
+21–27","M9
+28–04","M10
+05–11","M11
+12–18","M12
+19–25","M13
+26–01","M14
+02–08","M15
+09–15","M16
+16–22","M17
+23–29","M18
+30–06","M19
+07–13","M20
+14–20","M21
+21–27","M22
+28–03","M23
+04–10"
+1,Analisis kebutuhan dan perumusan konsep AI-Powered Restaurant SaaS,,,,,,,,,,,,,,,,,,,,,,,
+2,"Eksplorasi tools AI, agent, dan opsi model untuk chatbot restoran",,,,,,,,,,,,,,,,,,,,,,,
+3,Perancangan arsitektur awal sistem AI Restaurant serta pemilihan technology stack,,,,,,,,,,,,,,,,,,,,,,,
+4,Penyusunan roadmap pengembangan AI-Powered Restaurant berbasis SaaS,,,,,,,,,,,,,,,,,,,,,,,
+5,Riset dan evaluasi model AI serta infrastruktur untuk kebutuhan chatbot restoran,,,,,,,,,,,,,,,,,,,,,,,
+6,Sinkronisasi visi pengembangan asisten AI F&B dan penyesuaian roadmap multi-tenant,,,,,,,,,,,,,,,,,,,,,,,
+7,Setup project structure dan initial development environment,,,,,,,,,,,,,,,,,,,,,,,
+8,Pengembangan landing page utama dan komponen Navbar,,,,,,,,,,,,,,,,,,,,,,,
+9,Pengembangan katalog menu dan manajemen data menu restoran,,,,,,,,,,,,,,,,,,,,,,,
+10,Pengembangan form reservasi dan state management aplikasi,,,,,,,,,,,,,,,,,,,,,,,
+11,"Perencanaan scope, target MVP, dan roadmap AI-Powered Restaurant",,,,,,,,,,,,,,,,,,,,,,,
+12,Pengembangan Admin Dashboard untuk manajemen reservasi dan meja,,,,,,,,,,,,,,,,,,,,,,,
+13,"Penyelesaian Admin Dashboard, POS, payment flow, dan initial commit",,,,,,,,,,,,,,,,,,,,,,,
+14,"Pembangunan fondasi AI: types, conversation state machine, dan context engine",,,,,,,,,,,,,,,,,,,,,,,
+15,"Penyelesaian AI orchestration, integrasi model, tool registry, dan Mock API",,,,,,,,,,,,,,,,,,,,,,,
+16,"Presentasi progres arsitektur AI, scope proyek, dan rencana implementasi",,,,,,,,,,,,,,,,,,,,,,,
+17,Integrasi beberapa pilihan model AI melalui 9router,,,,,,,,,,,,,,,,,,,,,,,
+18,"Penerapan temporary table lock, anti-double booking, dan aturan jam operasional",,,,,,,,,,,,,,,,,,,,,,,
+19,Pengembangan monitoring AI pada Admin Dashboard dan pengujian skenario reservasi,,,,,,,,,,,,,,,,,,,,,,,
+20,"Optimasi performa chat AI, widget chat, dan penanganan loading",,,,,,,,,,,,,,,,,,,,,,,
+21,Presentasi progres minggu ke-4 dan evaluasi pengembangan AI chatbot,,,,,,,,,,,,,,,,,,,,,,,
+22,Optimasi alur pemesanan takeaway melalui AI Chatbot hingga checkout,,,,,,,,,,,,,,,,,,,,,,,
+23,Pembuatan tombol pembayaran cepat dan pop-up pembayaran online di AI Chat,,,,,,,,,,,,,,,,,,,,,,,
+24,Implementasi validasi input menggunakan Zod pada AI tools,,,,,,,,,,,,,,,,,,,,,,,
+25,"Integrasi Vercel AI SDK untuk tool calling, streaming response, dan pengelolaan percakapan AI",,,,,,,,,,,,,,,,,,,,,,,
+26,"Setup Prisma Client, koneksi PostgreSQL, dan integrasi database dengan model serta repository restoran",,,,,,,,,,,,,,,,,,,,,,,
+27,Implementasi Orama untuk search menu dan integrasi pencarian typo pada AI chatbot serta pemesanan,,,,,,,,,,,,,,,,,,,,,,,
+28,"Implementasi Redis untuk distributed table lease locking, integrasi sistem reservasi, dan pengujian keseluruhan",,,,,,,,,,,,,,,,,,,,,,,
+29,Hubungkan Admin Dashboard & POS ke PostgreSQL,,,,,,,,,,,,,,,,,,,,,,,
+30,Sambungkan Midtrans Webhook ke PostgreSQL,,,,,,,,,,,,,,,,,,,,,,,
+31,"Fondasi Multi-Tenancy (SaaS Vision)",,,,,,,,,,,,,,,,,,,,,,,
+32,"Riset dan dokumentasi perbandingan performa model (latency, cost, accuracy)",,,,,,,,,,,,,,,,,,,,,,,
+33,Implementasi Short-Term Session Memory dengan sliding window context,,,,,,,,,,,,,,,,,,,,,,,
+34,Implementasi Entity Extraction & Slot Filling untuk konteks reservasi,,,,,,,,,,,,,,,,,,,,,,,
+35,Pengembangan Conversation Summary Service untuk konteks panjang,,,,,,,,,,,,,,,,,,,,,,,
+36,Pengembangan Customer Profile Service — identifikasi & riwayat pelanggan,,,,,,,,,,,,,,,,,,,,,,,
+37,Implementasi Long-Term Memory: preferensi pelanggan lintas sesi,,,,,,,,,,,,,,,,,,,,,,,
+38,Pengembangan API Customer Management di Admin Dashboard,,,,,,,,,,,,,,,,,,,,,,,
+39,"Setup Tenant B (Kopi Nusantara Cafe) — seed data menu, meja, dan profil restoran",,,,,,,,,,,,,,,,,,,,,,,
+40,Pengujian isolasi data antar tenant — memastikan tidak ada data leak,,,,,,,,,,,,,,,,,,,,,,,
+41,Presentasi progres Bulan 3 — demo 2 tenant dengan AI memory,,,,,,,,,,,,,,,,,,,,,,,
+42,Implementasi Input Sanitization & System Prompt Hardening,,,,,,,,,,,,,,,,,,,,,,,
+43,Implementasi Output Verification — cegah kebocoran data internal,,,,,,,,,,,,,,,,,,,,,,,
+44,Implementasi Rate Limiting per Session/IP untuk anti-abuse,,,,,,,,,,,,,,,,,,,,,,,
+45,Pembuatan Red-Team Attack Suite — 30+ skenario prompt injection,,,,,,,,,,,,,,,,,,,,,,,
+46,Implementasi Guardrail Service — domain boundary enforcement,,,,,,,,,,,,,,,,,,,,,,,
+47,Pengujian end-to-end guardrails dan dokumentasi security measures,,,,,,,,,,,,,,,,,,,,,,,
+48,Implementasi Dynamic System Prompt Generator per Tenant,,,,,,,,,,,,,,,,,,,,,,,
+49,"Implementasi Tenant White-Labeling — logo, warna tema, dan branding",,,,,,,,,,,,,,,,,,,,,,,
+50,Pengembangan Custom Business Rules per Tenant,,,,,,,,,,,,,,,,,,,,,,,
+51,"Setup Tenant C (Fine Dining) — seed data, personality, dan branding",,,,,,,,,,,,,,,,,,,,,,,
+52,"Integration testing 3 tenant — personality, branding, dan business rules",,,,,,,,,,,,,,,,,,,,,,,
+53,Presentasi progres Bulan 4 — demo 3 tenant dengan guardrails,,,,,,,,,,,,,,,,,,,,,,,
+54,"Pengembangan Order & Cart API di backend (create, update, calculate)",,,,,,,,,,,,,,,,,,,,,,,
+55,"Implementasi AI Tool baru: `search_menu_by_dietary`, `create_order_cart`, `calculate_bill`",,,,,,,,,,,,,,,,,,,,,,,
+56,Integrasi Pre-Order Menu ke reservasi — pesan makanan saat booking meja,,,,,,,,,,,,,,,,,,,,,,,
+57,Pembangunan Evaluation Dataset — 100 skenario edge cases,,,,,,,,,,,,,,,,,,,,,,,
+58,Implementasi Automated Test Runner dengan LLM-as-a-Judge,,,,,,,,,,,,,,,,,,,,,,,
+59,Pengukuran baseline metrics dan pembuatan laporan komparasi,,,,,,,,,,,,,,,,,,,,,,,
+60,"Optimasi latency: parallel retrieval, caching, dan connection pooling",,,,,,,,,,,,,,,,,,,,,,,
+61,Implementasi Response Streaming untuk pengalaman chat real-time,,,,,,,,,,,,,,,,,,,,,,,
+62,Performance benchmarking dan profiling bottleneck,,,,,,,,,,,,,,,,,,,,,,,
+63,"Implementasi Observability: tracing, structured logging, dan metrics dashboard",,,,,,,,,,,,,,,,,,,,,,,
+64,Penguatan Audit Trail — pencatatan semua aksi bisnis AI dan admin,,,,,,,,,,,,,,,,,,,,,,,
+65,Implementasi Error Recovery & Graceful Degradation,,,,,,,,,,,,,,,,,,,,,,,
+66,Simulasi 50 concurrent booking — stress test anti-double booking,,,,,,,,,,,,,,,,,,,,,,,
+67,Stress testing AI response quality under load,,,,,,,,,,,,,,,,,,,,,,,
+68,"Bug fixing, edge case handling, dan hardening berdasarkan hasil test",,,,,,,,,,,,,,,,,,,,,,,
+69,Final Evaluation Run — 100 skenario pada engine final,,,,,,,,,,,,,,,,,,,,,,,
+70,Penyusunan dokumentasi teknis lengkap dan repository cleanup,,,,,,,,,,,,,,,,,,,,,,,
+71,Persiapan demo end-to-end 3 tenant dan materi presentasi final,,,,,,,,,,,,,,,,,,,,,,,
+72,Demo live 3 tenant end-to-end kepada mentor/stakeholder,,,,,,,,,,,,,,,,,,,,,,,
+73,Presentasi Final Laporan Magang 6 Bulan,,,,,,,,,,,,,,,,,,,,,,,
+74,Penyusunan Laporan Akhir Magang dan handoff dokumentasi,,,,,,,,,,,,,,,,,,,,,,,
