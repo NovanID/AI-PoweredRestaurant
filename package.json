@@ -7,9 +7,15 @@
     "build": "next build",
     "start": "next start",
     "test": "node scripts/run-ai-tests.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:push": "prisma db push",
+    "prisma:generate": "prisma generate",
+    "db:health": "node scripts/check-db-health.mjs"
   },
   "dependencies": {
+    "@prisma/client": "6.19.3",
     "@tailwindcss/postcss": "latest",
     "next": "latest",
     "react": "latest",
@@ -20,6 +26,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "prisma": "6.19.3",
     "typescript": "latest"
   },
   "type": "module"
