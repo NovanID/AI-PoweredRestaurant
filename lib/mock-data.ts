@@ -1,4 +1,4 @@
-import { RestaurantProfile, Table, MenuItem, Reservation, AuditEvent } from '../types/restaurant';
+import type { RestaurantProfile, Table, MenuItem, Reservation, AuditEvent } from '../types/restaurant.ts';
 
 export const DEFAULT_TENANT_ID = 'raso-minang-padang-01';
 

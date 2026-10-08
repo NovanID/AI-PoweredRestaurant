@@ -1,4 +1,4 @@
-import {
+import type {
   RestaurantProfile,
   Table,
   MenuItem,
@@ -9,7 +9,7 @@ import {
   TableStatus,
   TableArea,
   MenuCategory,
-} from '../types/restaurant';
+} from '../types/restaurant.ts';
 import {
   DEFAULT_TENANT_ID,
   initialRestaurantProfile,
@@ -17,7 +17,7 @@ import {
   initialMenuItems,
   initialReservations,
   initialAuditEvents,
-} from './mock-data';
+} from './mock-data.ts';
 
 const STORAGE_KEYS = {
   PROFILE: 'rm_profile_v1',
