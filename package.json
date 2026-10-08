@@ -12,7 +12,8 @@
     "db:down": "docker compose down",
     "db:push": "prisma db push",
     "prisma:generate": "prisma generate",
-    "db:health": "node scripts/check-db-health.mjs"
+    "db:health": "node scripts/check-db-health.mjs",
+    "db:seed": "node scripts/seed-db.mjs"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

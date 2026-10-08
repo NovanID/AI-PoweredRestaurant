@@ -72,3 +72,22 @@ Catatan: tahap ini baru menyambungkan PostgreSQL + Prisma. Feature utama app mas
 ```bash
 npm run db:down
 ```
+
+## Seed data awal
+
+Jalankan setelah `db:push`:
+
+```bash
+npm run db:seed
+```
+
+Isi seed berasal dari `lib/mock-data.ts`: profil restoran, meja, menu, reservasi contoh, audit event.
+
+Cek di pgAdmin:
+
+```sql
+SELECT * FROM restaurants;
+SELECT * FROM tables;
+SELECT * FROM menu_items;
+SELECT * FROM reservations;
+```

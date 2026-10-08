@@ -26,6 +26,7 @@ test('package scripts expose Docker and Prisma workflow commands', async () => {
   assert.equal(pkg.scripts['db:push'], 'prisma db push');
   assert.equal(pkg.scripts['prisma:generate'], 'prisma generate');
   assert.equal(pkg.scripts['db:health'], 'node scripts/check-db-health.mjs');
+  assert.equal(pkg.scripts['db:seed'], 'node scripts/seed-db.mjs');
 });
 
 test('environment example documents PostgreSQL connection URL', async () => {
@@ -41,4 +42,18 @@ test('Prisma singleton and DB health route are present', async () => {
   assert.match(prismaClient, /new PrismaClient/);
   assert.match(healthRoute, /SELECT 1/);
   assert.match(healthRoute, /database/);
+});
+
+test('seed script imports mock data and writes initial restaurant records', async () => {
+  const seedScript = await readFile('scripts/seed-db.mjs', 'utf8');
+  const schema = await readFile('prisma/schema.prisma', 'utf8');
+
+  assert.match(seedScript, /initialRestaurantProfile/);
+  assert.match(seedScript, /initialMenuItems/);
+  assert.match(seedScript, /initialReservations/);
+  assert.match(seedScript, /prisma\.restaurant\.upsert/);
+  assert.match(seedScript, /prisma\.reservation\.upsert/);
+  assert.match(schema, /seated/);
+  assert.match(schema, /completed/);
+  assert.match(schema, /qrToken/);
 });
