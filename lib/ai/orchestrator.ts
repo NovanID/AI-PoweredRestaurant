@@ -85,6 +85,48 @@ function debugError(...args: unknown[]) {
   }
 }
 
+function extractMenuSearchTerm(message: string): string {
+  const lower = message.toLowerCase();
+  const knownTerms = ['rendang', 'ayam pop', 'dendeng', 'gulai', 'sambal', 'minuman', 'teh talua'];
+  return knownTerms.find((term) => lower.includes(term)) || message;
+}
+
+function fallbackReadOnlyToolCall(intent: AIIntent, message: string): ToolCallRequest | null {
+  if (intent === 'restaurant_info') {
+    return { id: 'fallback-get_restaurant_info', name: 'get_restaurant_info', arguments: {} };
+  }
+  if (intent === 'menu_query') {
+    return {
+      id: 'fallback-search_menu',
+      name: 'search_menu',
+      arguments: { search: extractMenuSearchTerm(message) },
+    };
+  }
+  return null;
+}
+
+async function executeReadOnlyToolCalls(calls: ToolCallRequest[]): Promise<ToolCallTrace[]> {
+  const traces: ToolCallTrace[] = [];
+  for (const call of calls) {
+    const result = await executeAITool(call);
+    traces.push({
+      id: call.id,
+      name: call.name,
+      arguments: call.arguments,
+      result,
+      protected: false,
+    });
+  }
+  return traces;
+}
+
+function replyFromToolTraces(traces: ToolCallTrace[]): string {
+  return traces
+    .map((trace) => trace.result?.userSafeMessage || trace.result?.message)
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 function messagesFromRequest(request: AIChatRequest): LLMMessage[] {
   const history = (request.history || []).slice(-10).map((message): LLMMessage => ({
     role: message.sender === 'assistant' ? 'assistant' : message.sender === 'system' ? 'system' : 'user',
@@ -195,22 +237,8 @@ export async function processAIChatServer(
         });
       }
 
-      const traces: ToolCallTrace[] = [];
-      for (const call of llmOutput.toolCalls) {
-        const result = await executeAITool(call);
-        traces.push({
-          id: call.id,
-          name: call.name,
-          arguments: call.arguments,
-          result,
-          protected: false,
-        });
-      }
-
-      const reply = traces
-        .map((trace) => trace.result?.userSafeMessage || trace.result?.message)
-        .filter(Boolean)
-        .join('\n\n');
+      const traces = await executeReadOnlyToolCalls(llmOutput.toolCalls);
+      const reply = replyFromToolTraces(traces);
 
       const trace = createAITrace({
         intent: route.intent,
@@ -227,6 +255,19 @@ export async function processAIChatServer(
         intent: route.intent,
         modelUsed: route.model,
         routeReason: route.routeReason,
+        toolCalls: traces,
+      });
+    }
+
+    const fallbackCall = fallbackReadOnlyToolCall(route.intent, message);
+    if (fallbackCall) {
+      const traces = await executeReadOnlyToolCalls([fallbackCall]);
+      const reply = replyFromToolTraces(traces);
+      return baseResponse({
+        reply: reply || 'Data berhasil diambil dari tool restoran.',
+        intent: route.intent,
+        modelUsed: route.model,
+        routeReason: `${route.routeReason}:forced-tool`,
         toolCalls: traces,
       });
     }

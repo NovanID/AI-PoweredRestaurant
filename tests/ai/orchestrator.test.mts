@@ -59,6 +59,20 @@ test('executes pending protected tool after explicit confirmation', async () => 
   assert.match(confirmed.reply, /Reservasi/);
 });
 
+test('grounds menu facts through tools even when provider returns plain text', async () => {
+  const plainTextProvider: LLMProvider = {
+    async chat() {
+      return { content: 'Rendang gratis hari ini.', toolCalls: [], raw: {} };
+    },
+  };
+
+  const res = await processAIChatServer({ message: 'Berapa harga rendang?' }, { provider: plainTextProvider });
+
+  assert.equal(res.toolCalls?.[0].name, 'search_menu');
+  assert.doesNotMatch(res.reply.toLowerCase(), /gratis/);
+  assert.match(res.reply.toLowerCase(), /rendang/);
+});
+
 test('returns safe response when provider fails', async () => {
   const missingKeyProvider: LLMProvider = {
     async chat() {
