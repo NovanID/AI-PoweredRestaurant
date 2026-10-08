@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaRestaurantRepository } from '../../../../lib/db/prisma-repository';
-import { DEFAULT_TENANT_ID } from '../../../../lib/mock-data';
+import { getAdminSession } from '../../../../lib/auth/admin-session';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    // SECURITY: admin session is mandatory; tenantId comes from the signed claim,
+    // never from the request body. Any tenantId sent by the client is ignored.
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: 'Autentikasi admin diperlukan.' },
+        { status: 401 }
+      );
+    }
+    const tenantId = session.tenantId;
+
     const body = await req.json();
-    const { action, tenantId = DEFAULT_TENANT_ID, ...payload } = body;
+    const { action, ...payload } = body;
 
     if (!action) {
       return NextResponse.json(

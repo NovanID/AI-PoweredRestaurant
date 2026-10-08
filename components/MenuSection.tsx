@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRestaurant } from "../lib/use-restaurant";
+import { useTenant } from "../lib/tenant-context";
 import { MenuCategory } from "../types/restaurant";
 
 const CATEGORIES: Array<MenuCategory | "Semua"> = [
@@ -19,6 +20,7 @@ interface MenuSectionProps {
 
 export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionProps) {
   const { menu } = useRestaurant();
+  const { branding } = useTenant();
   const [selectedCategory, setSelectedCategory] = useState<MenuCategory | "Semua">("Semua");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -58,35 +60,35 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
   return (
     <section className="shell py-16 md:py-20" id="menu">
       <div className="text-center max-w-2xl mx-auto mb-8">
-        <p className="eyebrow">Pilihan Hidangan Tradisi</p>
-        <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#8f1d20] mb-4">
-          Cita Rasa Otentik Minang
+        <p className="eyebrow">{branding.menuEyebrow}</p>
+        <h2 className="text-3xl md:text-5xl font-serif font-bold text-[var(--brand-primary)] mb-4">
+          {branding.menuTitle}
         </h2>
-        <p className="text-[#74635c] text-sm md:text-base leading-relaxed">
-          Semua hidangan diolah harian dengan rempah segar tanpa pengawet. Status ketersediaan diperbarui langsung oleh dapur kami.
+        <p className="text-[var(--brand-muted)] text-sm md:text-base leading-relaxed">
+          {branding.menuDescription}
         </p>
       </div>
 
       {/* AI Sommelier Recommendation Banner */}
       {onAskAI && (
-        <div className="mb-8 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-[#8f1d20]/10 via-[#d8a43b]/15 to-[#8f1d20]/5 border border-[#d8a43b]/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div className="mb-8 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-[var(--brand-primary)]/10 via-[var(--brand-accent)]/15 to-[var(--brand-primary)]/5 border border-[var(--brand-accent)]/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-3 text-left">
-            <div className="w-10 h-10 rounded-2xl bg-[#8f1d20] text-[#ffd98a] flex items-center justify-center font-bold text-lg shrink-0 shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-[var(--brand-primary)] text-[var(--brand-accent-light)] flex items-center justify-center font-bold text-lg shrink-0 shadow-xs">
               ✨
             </div>
             <div>
-              <p className="text-xs font-bold text-[#8f1d20] uppercase tracking-wider">
+              <p className="text-xs font-bold text-[var(--brand-primary)] uppercase tracking-wider">
                 Bingung Pilih Menu untuk Rombongan?
               </p>
-              <p className="text-xs text-[#74635c]">
-                Tanyakan kombinasi lauk terfavorit, opsi non-pedas, atau paket santap keluarga ke Asisten AI kami.
+              <p className="text-xs text-[var(--brand-muted)]">
+                Tanyakan kombinasi menu terfavorit, opsi non-pedas, atau paket santap keluarga ke Asisten AI kami.
               </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => onAskAI("Rekomendasikan paket menu makan terbaik untuk 4 orang di Raso Minang")}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#8f1d20] hover:bg-[#731518] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 hover:scale-105"
+            onClick={() => onAskAI("Rekomendasikan paket menu makan terbaik untuk 4 orang di restoran ini")}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 hover:scale-105"
           >
             <span>Tanya Rekomendasi Menu ke AI</span>
             <span>⚡</span>
@@ -101,13 +103,13 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
           <input
             type="text"
             aria-label="Cari menu"
-            placeholder="Cari Rendang, Ayam Pop, Sambal..."
+            placeholder={branding.menuSearchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-9 py-2.5 rounded-full border border-[#d8cbbb] bg-white text-[#261b17] text-sm focus:outline-none focus:ring-2 focus:ring-[#d8a43b] focus:border-transparent transition-all shadow-xs"
+            className="w-full pl-10 pr-9 py-2.5 rounded-full border border-[var(--brand-border-strong)] bg-white text-[var(--brand-ink)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)] focus:border-transparent transition-all shadow-xs"
           />
           <svg
-            className="w-4 h-4 text-[#74635c] absolute left-3.5 top-1/2 -translate-y-1/2"
+            className="w-4 h-4 text-[var(--brand-muted)] absolute left-3.5 top-1/2 -translate-y-1/2"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -118,7 +120,7 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
             <button
               onClick={() => setSearchQuery("")}
               aria-label="Hapus pencarian"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#74635c] hover:text-[#8f1d20] p-1 cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--brand-muted)] hover:text-[var(--brand-primary)] p-1 cursor-pointer"
             >
               ✕
             </button>
@@ -133,8 +135,8 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
               onClick={() => setSelectedCategory(cat)}
               className={`px-4 py-2 rounded-full text-xs md:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
                 selectedCategory === cat
-                  ? "bg-[#8f1d20] text-white shadow-md shadow-[#8f1d20]/20"
-                  : "bg-white text-[#74635c] border border-[#eadfca] hover:border-[#8f1d20]/40 hover:text-[#8f1d20]"
+                  ? "bg-[var(--brand-primary)] text-white shadow-md shadow-[var(--brand-primary)]/20"
+                  : "bg-white text-[var(--brand-muted)] border border-[var(--brand-border)] hover:border-[var(--brand-primary)]/40 hover:text-[var(--brand-primary)]"
               }`}
             >
               {cat}
@@ -144,7 +146,7 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
       </div>
 
       {/* Filter Status Bar */}
-      <div className="flex items-center justify-between text-xs text-[#74635c] mb-8 pb-3 border-b border-[#eadfca]/60 px-1">
+      <div className="flex items-center justify-between text-xs text-[var(--brand-muted)] mb-8 pb-3 border-b border-[var(--brand-border)]/60 px-1">
         <span>
           Menampilkan <strong>{filteredItems.length}</strong> dari {menu.length} hidangan
           {selectedCategory !== "Semua" && ` (Kategori: ${selectedCategory})`}
@@ -155,7 +157,7 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
               setSearchQuery("");
               setSelectedCategory("Semua");
             }}
-            className="text-xs font-bold text-[#8f1d20] hover:underline cursor-pointer flex items-center gap-1"
+            className="text-xs font-bold text-[var(--brand-primary)] hover:underline cursor-pointer flex items-center gap-1"
           >
             <span>Bersihkan Filter</span>
             <span>✕</span>
@@ -165,12 +167,12 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
 
       {/* Menu Grid */}
       {filteredItems.length === 0 ? (
-        <div className="text-center py-16 bg-white/70 rounded-3xl border border-dashed border-[#d8cbbb] space-y-3">
+        <div className="text-center py-16 bg-white/70 rounded-3xl border border-dashed border-[var(--brand-border-strong)] space-y-3">
           <div className="text-3xl">🍲</div>
-          <p className="text-[#261b17] font-bold text-base">
+          <p className="text-[var(--brand-ink)] font-bold text-base">
             Tidak ada menu yang sesuai dengan pencarian Anda
           </p>
-          <p className="text-xs text-[#74635c] max-w-sm mx-auto">
+          <p className="text-xs text-[var(--brand-muted)] max-w-sm mx-auto">
             Coba gunakan kata kunci umum seperti &quot;Rendang&quot;, &quot;Ayam&quot;, atau pilih kategori &quot;Semua&quot;.
           </p>
           <button
@@ -178,7 +180,7 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
               setSearchQuery("");
               setSelectedCategory("Semua");
             }}
-            className="px-5 py-2 rounded-xl bg-[#8f1d20] text-white text-xs font-bold hover:bg-[#731518] transition-colors cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold hover:bg-[var(--brand-primary-hover)] transition-colors cursor-pointer"
           >
             Tampilkan Semua Menu
           </button>
@@ -192,8 +194,8 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
                 key={item.id}
                 className={`group flex flex-col justify-between p-6 rounded-3xl border transition-all duration-200 ${
                   item.isAvailable
-                    ? "bg-white border-[#eadfca] hover:border-[#d8a43b] hover:shadow-xl hover:shadow-[#d8a43b]/10"
-                    : "bg-[#f5f1eb]/70 border-[#e2d8cb] opacity-75"
+                    ? "bg-white border-[var(--brand-border)] hover:border-[var(--brand-accent)] hover:shadow-xl hover:shadow-[var(--brand-accent)]/10"
+                    : "bg-[var(--brand-bg-alt)]/70 border-[var(--brand-border-alt)] opacity-75"
                 }`}
               >
                 <div>
@@ -209,7 +211,7 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
                         {item.isAvailable ? "✓ Tersedia" : "✕ Habis Hari Ini"}
                       </span>
                       {item.isPopular && (
-                        <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-[#d8a43b]/15 text-[#8f1d20] border border-[#d8a43b]/30">
+                        <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-[var(--brand-accent)]/15 text-[var(--brand-primary)] border border-[var(--brand-accent)]/30">
                           ★ Favorit
                         </span>
                       )}
@@ -217,24 +219,24 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
                         {spice.icon} {spice.label}
                       </span>
                     </div>
-                    <span className="text-[10px] font-semibold text-[#74635c] uppercase tracking-wider">
+                    <span className="text-[10px] font-semibold text-[var(--brand-muted)] uppercase tracking-wider">
                       {item.category}
                     </span>
                   </div>
 
                   <div className="mb-2">
-                    <h3 className="font-serif text-xl font-bold text-[#261b17] group-hover:text-[#8f1d20] transition-colors leading-snug">
+                    <h3 className="font-serif text-xl font-bold text-[var(--brand-ink)] group-hover:text-[var(--brand-primary)] transition-colors leading-snug">
                       {item.name}
                     </h3>
                   </div>
 
-                  <p className="text-xs md:text-sm text-[#74635c] leading-relaxed mb-6">
+                  <p className="text-xs md:text-sm text-[var(--brand-muted)] leading-relaxed mb-6">
                     {item.description}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-[#f1e6d4] mt-auto gap-2">
-                  <strong className="font-serif text-xl text-[#8f1d20] font-bold">
+                <div className="flex items-center justify-between pt-4 border-t border-[var(--brand-border-soft)] mt-auto gap-2">
+                  <strong className="font-serif text-xl text-[var(--brand-primary)] font-bold">
                     {formatPrice(item.price)}
                   </strong>
 
@@ -243,7 +245,7 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
                       type="button"
                       onClick={() => onSelectMenuItem(item.name)}
                       disabled={!item.isAvailable}
-                      className="px-3.5 py-1.5 rounded-xl bg-[#fffaf0] hover:bg-[#8f1d20] text-[#8f1d20] hover:text-white border border-[#8f1d20]/30 text-xs font-bold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-2xs"
+                      className="px-3.5 py-1.5 rounded-xl bg-[var(--brand-bg)] hover:bg-[var(--brand-primary)] text-[var(--brand-primary)] hover:text-white border border-[var(--brand-primary)]/30 text-xs font-bold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-2xs"
                     >
                       <span>Pesan di Meja</span>
                       <span>→</span>
@@ -251,7 +253,7 @@ export default function MenuSection({ onSelectMenuItem, onAskAI }: MenuSectionPr
                   ) : (
                     <a
                       href="#reservasi"
-                      className="text-xs font-bold text-[#74635c] group-hover:text-[#8f1d20] flex items-center gap-1 transition-colors"
+                      className="text-xs font-bold text-[var(--brand-muted)] group-hover:text-[var(--brand-primary)] flex items-center gap-1 transition-colors"
                     >
                       <span>Pesan Meja</span>
                       <span>→</span>

@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
 import { PrismaRestaurantRepository } from '../../../../lib/db/prisma-repository';
 import { AVAILABLE_TENANTS } from '../../../../lib/mock-data';
+import { getAdminSession } from '../../../../lib/auth/admin-session';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const dbTenants = await PrismaRestaurantRepository.getAllTenants().catch(() => []);
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: 'Autentikasi admin diperlukan.' },
+        { status: 401 }
+      );
+    }
+
+    const dbTenants = await PrismaRestaurantRepository.getAllTenants();
 
     if (dbTenants.length > 0) {
       // Merge with metadata from AVAILABLE_TENANTS

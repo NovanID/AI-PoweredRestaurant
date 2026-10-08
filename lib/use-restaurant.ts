@@ -1,270 +1,181 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { restaurantStore } from './restaurant-store';
-import {
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import type {
   RestaurantProfile,
   Table,
   MenuItem,
   Reservation,
   AuditEvent,
   ReservationStatus,
+  TableStatus,
   MenuCategory,
   TableArea,
 } from '../types/restaurant';
+import { DEFAULT_TENANT_ID, AVAILABLE_TENANTS } from './mock-data';
+import { useTenant } from './tenant-context';
 import {
-  DEFAULT_TENANT_ID,
-  AVAILABLE_TENANTS,
-  getTenantInitialData,
-} from './mock-data';
+  adminFetchData,
+  adminAction,
+  adminSwitchTenant,
+  storefrontFetchData,
+  createReservationRemote,
+  checkAvailabilityRemote,
+} from './api-client';
 
-// Helper for sending admin mutations to PostgreSQL
-async function sendAdminAction(action: string, payload: Record<string, any>) {
-  const res = await fetch('/api/admin/action', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, ...payload }),
-  });
-  const result = await res.json();
-  if (!res.ok || !result.success) throw new Error(result.message || `Aksi ${action} gagal.`);
-  return result;
+export type RestaurantHookMode = 'admin' | 'storefront';
+
+interface Options {
+  mode?: RestaurantHookMode;
 }
 
-export function useRestaurant(initialTenantId?: string) {
-  const [activeTenantId, setActiveTenantId] = useState<string>(initialTenantId || DEFAULT_TENANT_ID);
-  const initialBundle = getTenantInitialData(activeTenantId);
+const EMPTY_PROFILE: RestaurantProfile = {
+  tenantId: DEFAULT_TENANT_ID,
+  name: '...',
+  tagline: '',
+  address: '',
+  city: '',
+  phone: '',
+  openingHours: '',
+  openTime: '10:00',
+  closeTime: '22:00',
+  description: '',
+  policies: [],
+};
 
-  const [profile, setProfile] = useState<RestaurantProfile>(initialBundle.profile);
-  const [tables, setTables] = useState<Table[]>(initialBundle.tables);
-  const [menu, setMenu] = useState<MenuItem[]>(initialBundle.menu);
-  const [reservations, setReservations] = useState<Reservation[]>(initialBundle.reservations);
-  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(initialBundle.auditEvents);
+/**
+ * Unified data hook.
+ *
+ * - mode 'admin' (default inside /admin): reads /api/admin/data with the signed
+ *   session cookie; every mutation goes through /api/admin/action where the
+ *   tenant is derived from the session claim server-side. PostgreSQL is the
+ *   single source of truth — there is no local mock fallback anymore.
+ *
+ * - mode 'storefront': reads only the public /api/storefront/data (profile,
+ *   menu, tables) for the tenant resolved from the URL (/t/[slug]); customer
+ *   mutations go through the public reservation endpoints.
+ */
+export function useRestaurant(options: Options = {}) {
+  const tenantCtx = useTenant();
+  // Default mode is 'storefront'; AdminDashboard passes { mode: 'admin' }.
+  const mode: RestaurantHookMode = options.mode || 'storefront';
+
+  const initialTenantId = mode === 'storefront' ? tenantCtx.tenantId : DEFAULT_TENANT_ID;
+
+  const [activeTenantId, setActiveTenantId] = useState<string>(initialTenantId);
+  const [profile, setProfile] = useState<RestaurantProfile>({ ...EMPTY_PROFILE, tenantId: initialTenantId });
+  const [tables, setTables] = useState<Table[]>([]);
+  const [menu, setMenu] = useState<MenuItem[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [isDbConnected, setIsDbConnected] = useState(false);
+  const [authError, setAuthError] = useState(false);
   const isFetchingRef = useRef(false);
 
-  // Sync state from PostgreSQL API for active tenant
-  const fetchDbState = useCallback(async (targetTenantId?: string) => {
-    const currentTenant = targetTenantId || activeTenantId;
+  // Keep the active tenant in sync with the URL-resolved tenant (storefront)
+  useEffect(() => {
+    if (mode === 'storefront') setActiveTenantId(tenantCtx.tenantId);
+  }, [mode, tenantCtx.tenantId]);
+
+  const fetchData = useCallback(async (targetTenantId?: string) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     try {
-      const res = await fetch(`/api/admin/data?tenantId=${encodeURIComponent(currentTenant)}`);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const json = await res.json();
-
-      if (json.success && json.data) {
-        setIsDbConnected(json.source === 'postgresql');
-        const {
-          profile: dbProfile,
-          tables: dbTables,
-          menu: dbMenu,
-          reservations: dbReservations,
-          auditEvents: dbAuditEvents,
-        } = json.data;
-
-        if (dbProfile) setProfile(dbProfile);
-        if (Array.isArray(dbTables)) setTables(dbTables);
-        if (Array.isArray(dbMenu)) setMenu(dbMenu);
-        if (Array.isArray(dbReservations)) setReservations(dbReservations);
-        if (Array.isArray(dbAuditEvents)) setAuditEvents(dbAuditEvents);
-
-        // Also hydrate client store to keep local fallback synchronized
-        restaurantStore.hydrateFromDb(json.data);
+      if (mode === 'admin') {
+        const data = await adminFetchData();
+        setProfile(data.profile);
+        setTables(data.tables || []);
+        setMenu(data.menu || []);
+        setReservations(data.reservations || []);
+        setAuditEvents(data.auditEvents || []);
+        setIsDbConnected(true);
+        setAuthError(false);
+        if (data.profile?.tenantId) setActiveTenantId(data.profile.tenantId);
+      } else {
+        const tenant = targetTenantId || activeTenantId;
+        const data = await storefrontFetchData(tenant);
+        setProfile(data.profile);
+        setMenu(data.menu || []);
+        setTables(data.tables || []);
+        setIsDbConnected(true);
       }
-    } catch (err) {
-      console.warn('[useRestaurant] DB sync poll error, relying on local fallback:', err);
+    } catch (err: any) {
       setIsDbConnected(false);
+      if (mode === 'admin' && err?.status === 401) setAuthError(true);
+      console.warn(`[useRestaurant:${mode}] fetch error:`, err?.message || err);
     } finally {
       isFetchingRef.current = false;
     }
-  }, [activeTenantId]);
-
-  const dispatchAdminAction = useCallback((action: string, payload: Record<string, any>) => {
-    void sendAdminAction(action, payload)
-      .then(() => fetchDbState())
-      .catch((error) => {
-        setIsDbConnected(false);
-        console.error(`[useRestaurant] ${action} gagal disimpan ke PostgreSQL:`, error);
-      });
-  }, [fetchDbState]);
-
-  // Tenant switch function
-  const setTenantId = useCallback((newTenantId: string) => {
-    setActiveTenantId(newTenantId);
-    restaurantStore.switchTenant(newTenantId);
-    fetchDbState(newTenantId);
-  }, [fetchDbState]);
+  }, [mode, activeTenantId]);
 
   useEffect(() => {
     setIsClient(true);
-    restaurantStore.initFromStorage();
-    const syncState = () => {
-      setProfile(restaurantStore.getProfile());
-      setTables(restaurantStore.getTables());
-      setMenu(restaurantStore.getMenuItems());
-      setReservations(restaurantStore.getAllReservations());
-      setAuditEvents(restaurantStore.getAuditEvents());
-    };
+    void fetchData(activeTenantId);
 
-    syncState();
-    const unsubscribe = restaurantStore.subscribe(syncState);
+    // Admin dashboard polls for realtime cashier sync; storefront fetches once.
+    if (mode === 'admin') {
+      const poll = setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+          void fetchData();
+        }
+      }, 5000);
+      return () => clearInterval(poll);
+    }
+  }, [mode, activeTenantId, fetchData]);
 
-    // Initial fetch from PostgreSQL
-    fetchDbState(activeTenantId);
+  /** Admin-only: switch tenant via signed session (server re-signs the cookie). */
+  const setTenantId = useCallback(async (newTenantId: string) => {
+    if (mode !== 'admin') {
+      setActiveTenantId(newTenantId);
+      void fetchData(newTenantId);
+      return;
+    }
+    try {
+      await adminSwitchTenant(newTenantId);
+      setActiveTenantId(newTenantId);
+      await fetchData();
+    } catch (err: any) {
+      if (err?.status === 401) setAuthError(true);
+      throw err;
+    }
+  }, [mode, fetchData]);
 
-    // 5-second polling interval for real-time cashier sync
-    const pollInterval = setInterval(() => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        fetchDbState(activeTenantId);
-      }
-    }, 5000);
+  // ---------- Admin mutations (async, server-authoritative) ----------
 
-    return () => {
-      unsubscribe();
-      clearInterval(pollInterval);
-    };
-  }, [activeTenantId, fetchDbState]);
-
-  const getMenuItems = useCallback(
-    (category?: MenuCategory | 'Semua', search?: string) =>
-      restaurantStore.getMenuItems(category, search),
-    []
-  );
+  const runAdminAction = useCallback(async (action: string, payload: Record<string, any>) => {
+    try {
+      const res = await adminAction(action, payload);
+      void fetchData();
+      return res;
+    } catch (err: any) {
+      if (err?.status === 401) setAuthError(true);
+      void fetchData();
+      return { success: false, message: err?.message || `Aksi ${action} gagal diproses di server.` };
+    }
+  }, [fetchData]);
 
   const toggleMenuAvailability = useCallback(
-    (id: string, actor?: string) => {
-      const opt = restaurantStore.toggleMenuItemAvailability(id, actor);
-      dispatchAdminAction('TOGGLE_MENU', { id, actor, tenantId: activeTenantId });
-      return opt;
-    },
-    [activeTenantId, dispatchAdminAction]
-  );
-
-  const checkAvailability = useCallback(
-    (date: string, time: string, guestCount: number, preferredArea?: TableArea) =>
-      restaurantStore.checkAvailability(date, time, guestCount, preferredArea),
-    []
-  );
-
-  const createReservation = useCallback(
-    (data: {
-      customerName: string;
-      customerPhone?: string;
-      date: string;
-      time: string;
-      guestCount: number;
-      notes?: string;
-      preferredArea?: TableArea;
-      paymentAmount?: number;
-      paymentStatus?: any;
-      snapToken?: string;
-      actor?: string;
-    }) => {
-      const opt = restaurantStore.createReservation(data);
-      if (!opt.success || !opt.reservation) return Promise.resolve(opt);
-
-      return sendAdminAction('CREATE_RESERVATION', {
-          tenantId: activeTenantId,
-          reservation: opt.reservation,
-          actor: data.actor || 'Web Customer',
-        })
-        .then(async (result) => {
-          await fetchDbState();
-          return { success: true, message: result.message, reservation: result.reservation };
-        })
-        .catch((error) => {
-          setIsDbConnected(false);
-          return {
-            success: false,
-            message: error.message || 'Reservasi gagal disimpan ke PostgreSQL.',
-            reservation: undefined,
-          };
-        });
-    },
-    [activeTenantId, fetchDbState]
-  );
-
-  const getReservationByCode = useCallback(
-    (code: string) => {
-      const found = reservations.find((r) => r.code.toUpperCase() === code.trim().toUpperCase());
-      return found || restaurantStore.getReservationByCode(code);
-    },
-    [reservations]
-  );
-
-  // Direct remote lookup for customer tracking modal from PostgreSQL
-  const fetchReservationByCode = useCallback(async (code: string) => {
-    try {
-      const res = await fetch(`/api/reservations/lookup?code=${encodeURIComponent(code.trim())}`);
-      if (!res.ok) return null;
-      const json = await res.json();
-      return json.success ? json.data : null;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const updateReservation = useCallback(
-    (
-      code: string,
-      newData: {
-        date?: string;
-        time?: string;
-        guestCount?: number;
-        notes?: string;
-        preferredArea?: TableArea;
-      },
-      actor?: string
-    ) => {
-      const opt = restaurantStore.updateReservation(code, newData, actor);
-      dispatchAdminAction('UPDATE_RESERVATION', {
-        tenantId: activeTenantId,
-        code,
-        ...newData,
-        actor,
-      });
-      return opt;
-    },
-    [activeTenantId, dispatchAdminAction]
+    (id: string, actor?: string) => runAdminAction('TOGGLE_MENU', { id, actor }),
+    [runAdminAction]
   );
 
   const updateTableStatus = useCallback(
-    (id: string, status: any, actor?: string) => {
-      const opt = restaurantStore.updateTableStatus(id, status, actor);
-      dispatchAdminAction('UPDATE_TABLE_STATUS', { tableId: id, status, actor, tenantId: activeTenantId });
-      return opt;
-    },
-    [activeTenantId, dispatchAdminAction]
+    (id: string, status: TableStatus, actor?: string) =>
+      runAdminAction('UPDATE_TABLE_STATUS', { tableId: id, status, actor }),
+    [runAdminAction]
   );
 
   const updateReservationStatus = useCallback(
-    (
-      code: string,
-      status: ReservationStatus,
-      actor?: string,
-      reason?: string
-    ) => {
-      const opt = restaurantStore.updateReservationStatus(code, status, actor, reason);
-      dispatchAdminAction('UPDATE_RESERVATION_STATUS', { code, status, actor, reason, tenantId: activeTenantId });
-      return opt;
-    },
-    [activeTenantId, dispatchAdminAction]
+    (code: string, status: ReservationStatus, actor?: string, reason?: string) =>
+      runAdminAction('UPDATE_RESERVATION_STATUS', { code, status, actor, reason }),
+    [runAdminAction]
   );
 
   const createWalkInSeated = useCallback(
-    (tableId: string, guestCount?: number, actor?: string) => {
-      const opt = restaurantStore.createWalkInSeated(tableId, guestCount, actor);
-      dispatchAdminAction('WALK_IN_SEATED', {
-        tableId,
-        guestCount,
-        actor,
-        tenantId: activeTenantId,
-        code: opt.reservation?.code,
-      });
-      return opt;
-    },
-    [activeTenantId, dispatchAdminAction]
+    (tableId: string, guestCount?: number, actor?: string, code?: string) =>
+      runAdminAction('WALK_IN_SEATED', { tableId, guestCount, actor, code }),
+    [runAdminAction]
   );
 
   const createManualOfflineBooking = useCallback(
@@ -278,100 +189,156 @@ export function useRestaurant(initialTenantId?: string) {
       date?: string;
       time?: string;
       actor?: string;
-    }) => {
-      const opt = restaurantStore.createManualOfflineBooking(data);
-      dispatchAdminAction('MANUAL_BOOKING', {
-        ...data,
-        tenantId: activeTenantId,
-        code: opt.reservation?.code,
-      });
-      return opt;
-    },
-    [activeTenantId, dispatchAdminAction]
+    }) => runAdminAction('MANUAL_BOOKING', { ...data }),
+    [runAdminAction]
   );
 
   const addOrderItemsToReservation = useCallback(
-    (code: string, items: any[], actor?: string) => {
-      const opt = restaurantStore.addOrderItemsToReservation(code, items, actor);
-      dispatchAdminAction('ADD_ORDER_ITEMS', { code, items, actor, tenantId: activeTenantId });
-      return opt;
-    },
-    [activeTenantId, dispatchAdminAction]
+    (code: string, items: any[], actor?: string) =>
+      runAdminAction('ADD_ORDER_ITEMS', { code, items, actor }),
+    [runAdminAction]
   );
 
   const settleOfflinePayment = useCallback(
-    (code: string, paymentMethod?: string, actor?: string) => {
-      const opt = restaurantStore.settleOfflinePayment(code, paymentMethod, actor);
-      dispatchAdminAction('SETTLE_PAYMENT', { code, paymentMethod, actor, tenantId: activeTenantId });
-      return opt;
-    },
-    [activeTenantId, dispatchAdminAction]
+    (code: string, paymentMethod?: string, actor?: string) =>
+      runAdminAction('SETTLE_PAYMENT', { code, paymentMethod, actor }),
+    [runAdminAction]
   );
 
   const markAsSeated = useCallback(
-    (code: string, actor?: string) => {
-      const opt = restaurantStore.markAsSeated(code, actor);
-      dispatchAdminAction('MARK_SEATED', { code, actor, tenantId: activeTenantId });
-      return opt;
-    },
-    [activeTenantId, dispatchAdminAction]
+    (code: string, actor?: string) => runAdminAction('MARK_SEATED', { code, actor }),
+    [runAdminAction]
   );
 
   const markAsCompleted = useCallback(
-    (code: string, actor?: string) => {
-      const opt = restaurantStore.markAsCompleted(code, actor);
-      dispatchAdminAction('MARK_COMPLETED', { code, actor, tenantId: activeTenantId });
-      return opt;
-    },
-    [activeTenantId, dispatchAdminAction]
+    (code: string, actor?: string) => runAdminAction('MARK_COMPLETED', { code, actor }),
+    [runAdminAction]
   );
 
   const markAsNoShow = useCallback(
-    (code: string, actor?: string, reason?: string) => {
-      const opt = restaurantStore.markAsNoShow(code, actor, reason);
-      dispatchAdminAction('MARK_NO_SHOW', { code, actor, reason, tenantId: activeTenantId });
-      return opt;
+    (code: string, actor?: string, reason?: string) =>
+      runAdminAction('MARK_NO_SHOW', { code, actor, reason }),
+    [runAdminAction]
+  );
+
+  // Leases now live server-side in Redis; refreshing DB state is the safe no-op.
+  const autoReleaseExpiredLocks = useCallback(() => { void fetchData(); }, [fetchData]);
+  const resetToDefaults = useCallback(() => { void fetchData(); }, [fetchData]);
+
+  // ---------- Storefront operations ----------
+
+  const createReservation = useCallback(
+    async (data: {
+      customerName: string;
+      customerPhone?: string;
+      date: string;
+      time: string;
+      guestCount: number;
+      notes?: string;
+      preferredArea?: TableArea;
+      paymentAmount?: number;
+      payDepositNow?: boolean;
+    }): Promise<{ success: boolean; message: string; reservation?: Reservation }> => {
+      try {
+        const res = await createReservationRemote({
+          tenantId: activeTenantId,
+          customerName: data.customerName,
+          customerPhone: data.customerPhone || '-',
+          date: data.date,
+          time: data.time,
+          guestCount: data.guestCount,
+          preferredArea: data.preferredArea,
+          notes: data.notes,
+          payDepositNow: data.payDepositNow,
+          paymentAmount: data.paymentAmount,
+        });
+        return { success: true, message: res.message, reservation: res.reservation };
+      } catch (err: any) {
+        return { success: false, message: err?.message || 'Reservasi gagal disimpan ke server.' };
+      }
     },
-    [activeTenantId, dispatchAdminAction]
+    [activeTenantId]
   );
 
-  const autoReleaseExpiredLocks = useCallback(
-    () => restaurantStore.autoReleaseExpiredLocks(),
-    []
+  const checkAvailability = useCallback(
+    async (date: string, time: string, guestCount: number, preferredArea?: TableArea) => {
+      try {
+        return await checkAvailabilityRemote({
+          tenantId: activeTenantId,
+          date,
+          time,
+          guestCount,
+          preferredArea,
+        });
+      } catch (err: any) {
+        return { available: false, availableTables: [], reason: err?.message || 'Gagal mengecek ketersediaan.' };
+      }
+    },
+    [activeTenantId]
   );
 
-  const resetToDefaults = useCallback(() => restaurantStore.resetToDefaults(), []);
+  const getMenuItems = useCallback(
+    (category?: MenuCategory | 'Semua', search?: string) =>
+      menu.filter((item) => {
+        if (category && category !== 'Semua' && item.category !== category) return false;
+        if (search && search.trim()) {
+          const q = search.toLowerCase();
+          return (
+            item.name.toLowerCase().includes(q) ||
+            item.description.toLowerCase().includes(q) ||
+            item.category.toLowerCase().includes(q)
+          );
+        }
+        return true;
+      }),
+    [menu]
+  );
 
-  return {
-    isClient,
-    isDbConnected,
-    tenantId: activeTenantId,
-    setTenantId,
-    availableTenants: AVAILABLE_TENANTS,
-    refresh: () => fetchDbState(activeTenantId),
-    profile,
-    tables,
-    menu,
-    reservations,
-    auditEvents,
-    // Operations (memoized)
-    getMenuItems,
-    toggleMenuAvailability,
-    checkAvailability,
-    createReservation,
-    getReservationByCode,
-    fetchReservationByCode,
-    updateReservation,
-    updateTableStatus,
-    updateReservationStatus,
-    createWalkInSeated,
-    createManualOfflineBooking,
-    addOrderItemsToReservation,
-    settleOfflinePayment,
-    markAsSeated,
-    markAsCompleted,
-    markAsNoShow,
-    autoReleaseExpiredLocks,
-    resetToDefaults,
-  };
+  const getReservationByCode = useCallback(
+    (code: string) => reservations.find((r) => r.code.toUpperCase() === code.trim().toUpperCase()),
+    [reservations]
+  );
+
+  return useMemo(
+    () => ({
+      mode,
+      isClient,
+      isDbConnected,
+      authError,
+      tenantId: activeTenantId,
+      setTenantId,
+      availableTenants: AVAILABLE_TENANTS,
+      refresh: () => fetchData(activeTenantId),
+      profile,
+      tables,
+      menu,
+      reservations,
+      auditEvents,
+      // operations
+      getMenuItems,
+      toggleMenuAvailability,
+      checkAvailability,
+      createReservation,
+      getReservationByCode,
+      updateTableStatus,
+      updateReservationStatus,
+      createWalkInSeated,
+      createManualOfflineBooking,
+      addOrderItemsToReservation,
+      settleOfflinePayment,
+      markAsSeated,
+      markAsCompleted,
+      markAsNoShow,
+      autoReleaseExpiredLocks,
+      resetToDefaults,
+    }),
+    [
+      mode, isClient, isDbConnected, authError, activeTenantId, setTenantId, fetchData,
+      profile, tables, menu, reservations, auditEvents, getMenuItems, toggleMenuAvailability,
+      checkAvailability, createReservation, getReservationByCode, updateTableStatus,
+      updateReservationStatus, createWalkInSeated, createManualOfflineBooking,
+      addOrderItemsToReservation, settleOfflinePayment, markAsSeated, markAsCompleted,
+      markAsNoShow, autoReleaseExpiredLocks, resetToDefaults,
+    ]
+  );
 }

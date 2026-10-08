@@ -10,7 +10,7 @@ import { ContextEngine } from './context-engine';
 import { ToolExecutor } from '../domain/tool-executor';
 import { ResponseValidator } from './response-validator';
 import { GeminiClient } from './gemini-client';
-import { restaurantStore } from '../restaurant-store';
+import { loadTenantRuntimeData } from './tenant-data';
 import { ObservabilityManager } from '../infrastructure/observability';
 import { Reservation } from '../domain/types';
 import { ActionButtonEngine } from './action-button-engine';
@@ -54,10 +54,10 @@ export class AIOrchestrator {
         currentSession = ConversationStateMachine.transition(currentSession, 'IDLE');
       }
 
-      // 2. Fetch Restaurant Data
-      const profile = restaurantStore.getProfile();
-      const menuSnapshot = restaurantStore.getMenuItems();
-      const availableTablesCount = restaurantStore.getTables().filter((t) => t.status === 'available').length;
+      // 2. Fetch Restaurant Data for THIS session's tenant (PostgreSQL only)
+      const { profile, menuSnapshot, availableTablesCount } = await loadTenantRuntimeData(
+        currentSession.tenantId
+      );
 
       let replyText = '';
       let executedToolResult: ToolResult | undefined = undefined;
@@ -96,7 +96,7 @@ export class AIOrchestrator {
         executedToolResult = await ToolExecutor.execute({
           toolName: 'create_takeaway_order',
           rawArgs: {
-            customerName: currentSession.metadata?.customerName || 'Pelanggan Raso Minang',
+            customerName: currentSession.metadata?.customerName || `Pelanggan ${profile.name}`,
             customerPhone: currentSession.metadata?.customerPhone || '-',
             items: ao?.detailedItems || [],
             notes: ao?.notes,
@@ -134,7 +134,7 @@ export class AIOrchestrator {
         if (executedToolResult.success && executedToolResult.data) {
           const res = executedToolResult.data as Reservation;
           currentSession = ConversationStateMachine.transition(currentSession, 'COMPLETED', null);
-          replyText = `🎉 Reservasi Anda **BERHASIL DIKONFIRMASI**!\n\n📋 **Detail Booking:**\n• Kode Tiket: **${res.code}**\n• Meja: **${res.tableNumber} (${res.tableArea})**\n• Waktu: **${res.date} pukul ${res.time} WIB** (${res.guestCount} orang)\n\nTiket sudah tersimpan. Sampai jumpa di Raso Minang!`;
+          replyText = `🎉 Reservasi Anda **BERHASIL DIKONFIRMASI**!\n\n📋 **Detail Booking:**\n• Kode Tiket: **${res.code}**\n• Meja: **${res.tableNumber} (${res.tableArea})**\n• Waktu: **${res.date} pukul ${res.time} WIB** (${res.guestCount} orang)\n\nTiket sudah tersimpan. Sampai jumpa di ${profile.name}!`;
         }
       } else {
         // 3. Build Assembled Grounded Context

@@ -68,7 +68,6 @@ export async function POST(req: NextRequest) {
       customerDetails: {
         firstName: reservation.customerName,
         phone: reservation.customerPhone === '-' ? undefined : reservation.customerPhone,
-        email: 'customer@rasominang.com',
       },
       itemDetails: [
         {

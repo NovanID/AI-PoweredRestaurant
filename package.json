@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build",
-    "start": "next start"
+    "build": "next build --webpack",
+    "start": "next start",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.66",

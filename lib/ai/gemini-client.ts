@@ -12,7 +12,7 @@ export interface GeminiResponse {
 
 /**
  * AI Client — uses 9router (OpenAI-compatible) at localhost:20128
- * Kept class name "GeminiClient" to avoid touching every import site.
+ * Now configured for Grok 4.6 via 9router
  */
 export class GeminiClient {
   public static getBaseUrl(): string {
@@ -26,7 +26,7 @@ export class GeminiClient {
   }
 
   public static getModelName(): string {
-    return (process.env.AI_MODEL || 'dashscope/qwen-plus').trim();
+    return (process.env.AI_MODEL || 'openrouter/x-ai/grok-4.6').trim();
   }
 
   public static getTimeoutMs(): number {
@@ -34,21 +34,17 @@ export class GeminiClient {
     return !isNaN(envTimeout) && envTimeout > 0 ? envTimeout : 120000; // 120 seconds default for reasoning models
   }
 
-  /**
-   * Get configured Vercel AI SDK LanguageModel for streaming & tool calling
-   */
+  /** Get configured Vercel AI SDK LanguageModel for streaming & tool calling */
   public static getAIModel(modelOverride?: string) {
     const openai = createOpenAI({
       baseURL: this.getBaseUrl(),
-      apiKey: this.getApiKey() || 'sk-placeholder',
+      apiKey: process.env.AI_API_KEY || '«redacted:sk-…»',
     });
     const model = modelOverride || this.getModelName();
     return openai.chat(model);
   }
 
-  /**
-   * Convert Tool Registry into OpenAI function tools schema
-   */
+  /** Convert Tool Registry into OpenAI function tools schema */
   private static getOpenAITools(): any[] {
     const tools = ToolRegistry.listAvailableTools();
     return tools.map((t) => ({
@@ -65,9 +61,7 @@ export class GeminiClient {
     }));
   }
 
-  /**
-   * Kept for orchestrator compatibility (not used in OpenAI path)
-   */
+  /** Kept for orchestrator compatibility (not used in OpenAI path) */
   public static getGeminiFunctionDeclarations(): any[] {
     const tools = ToolRegistry.listAvailableTools();
     return tools.map((t) => ({
@@ -81,10 +75,7 @@ export class GeminiClient {
     }));
   }
 
-  /**
-   * Single-turn call — model returns BOTH text reply AND tool calls in one response.
-   * No second synthesis call needed.
-   */
+  /** Single-turn call — model returns BOTH text reply AND tool calls in one response. */
   public static async generateContent(params: {
     systemPrompt: string;
     history: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
@@ -120,7 +111,7 @@ PANDUAN RESPONS:
     };
 
     const timeoutMs = this.getTimeoutMs();
-    // 120-second timeout for reasoning models (e.g. Qwen 3.7 Max/Plus generating thinking tokens)
+    // 120-second timeout for reasoning models (e.g. Grok 4.6)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -176,7 +167,7 @@ PANDUAN RESPONS:
         }
       }
 
-      console.log(`[AI] replyText="${replyText.slice(0, 80)}..." toolCalls=${toolCalls.length}`);
+      console.log(`[AI] replyText=\"${replyText.slice(0, 80)}...\" toolCalls=${toolCalls.length}`);
 
       return {
         replyText: replyText.trim(),

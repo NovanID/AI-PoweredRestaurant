@@ -186,7 +186,9 @@ export interface AuditEvent {
   timestamp: string;
   actor: string;
   action: string;
-  target: string;
-  details: string;
+  entity: string;
+  /** Legacy display alias retained while consumers migrate to `entity`. */
+  target?: string;
+  details?: string;
   tenantId: TenantId;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRestaurant } from "../lib/use-restaurant";
 import { TableArea, Reservation } from "../types/restaurant";
 
@@ -100,15 +100,33 @@ export default function ReservationSection({
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentSuccessMsg, setPaymentSuccessMsg] = useState("");
 
-  // Live availability check
-  const availability = useMemo(() => {
-    if (!formData.date || !formData.time || !formData.guests) return null;
-    return checkAvailability(
-      formData.date,
-      formData.time,
-      Number(formData.guests),
-      formData.area === "Semua" ? undefined : (formData.area as TableArea)
-    );
+  // Live availability check — server-side (PostgreSQL + Redis holds), debounced
+  const [availability, setAvailability] = useState<{
+    available: boolean;
+    availableTables: Array<{ id: string; number: string; capacity: number; area: string }>;
+    reason?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!formData.date || !formData.time || !formData.guests) {
+      setAvailability(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      void checkAvailability(
+        formData.date,
+        formData.time,
+        Number(formData.guests),
+        formData.area === "Semua" ? undefined : (formData.area as TableArea)
+      ).then((res) => {
+        if (!cancelled) setAvailability(res);
+      });
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [formData.date, formData.time, formData.guests, formData.area, checkAvailability]);
 
   /**
@@ -242,8 +260,7 @@ export default function ReservationSection({
       preferredArea: formData.area === "Semua" ? undefined : (formData.area as TableArea),
       notes: formData.notes.trim(),
       paymentAmount: depositAmt,
-      paymentStatus: formData.payDepositNow ? "pending" : "unpaid",
-      actor: "Customer Web Form",
+      payDepositNow: formData.payDepositNow,
     });
 
     if (res.success && res.reservation) {
@@ -286,7 +303,8 @@ export default function ReservationSection({
 
   const handleCopyWhatsAppSummary = () => {
     if (!createdReservation) return;
-    const text = `*TIKET RESERVASI RASO MINANG*\n\nKode Tiket: *${createdReservation.code}*\nNama: ${createdReservation.customerName}\nTanggal: ${createdReservation.date}, ${createdReservation.time} WIB\nMeja: ${createdReservation.tableNumber} (${createdReservation.tableArea})\nJumlah Tamu: ${createdReservation.guestCount} Orang\nStatus: Terkonfirmasi Otomatis (Meja Terkunci)\n\nSampai jumpa di Restoran Raso Minang!`;
+    const brandName = profile.name && profile.name !== "..." ? profile.name : "Restoran";
+    const text = `*TIKET RESERVASI ${brandName.toUpperCase()}*\n\nKode Tiket: *${createdReservation.code}*\nNama: ${createdReservation.customerName}\nTanggal: ${createdReservation.date}, ${createdReservation.time} WIB\nMeja: ${createdReservation.tableNumber} (${createdReservation.tableArea})\nJumlah Tamu: ${createdReservation.guestCount} Orang\nStatus: Terkonfirmasi Otomatis (Meja Terkunci)\n\nSampai jumpa di ${brandName}!`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -308,40 +326,40 @@ export default function ReservationSection({
   };
 
   return (
-    <section className="reservation py-20 bg-[#f4ebe1] border-y border-[#eadfca]" id="reservasi">
+    <section className="reservation py-20 bg-[var(--brand-surface)] border-y border-[var(--brand-border)]" id="reservasi">
       <div className="shell grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
         {/* Left Column: Info & Operational Guide */}
         <div className="lg:col-span-5 space-y-6">
           <div>
             <p className="eyebrow">Layanan Meja</p>
-            <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#8f1d20] leading-tight mb-4">
+            <h2 className="text-3xl md:text-5xl font-serif font-bold text-[var(--brand-primary)] leading-tight mb-4">
               Reservasi Meja Anda
             </h2>
-            <p className="text-[#74635c] text-sm md:text-base leading-relaxed">
-              Nikmati santap hidangan Minang tanpa antre. Sistem kami memastikan meja Anda dipersiapkan dengan baik sebelum kedatangan.
+            <p className="text-[var(--brand-muted)] text-sm md:text-base leading-relaxed">
+              Nikmati waktu santap tanpa antre. Sistem kami memastikan meja Anda dipersiapkan dengan baik sebelum kedatangan.
             </p>
           </div>
 
-          <div className="p-6 rounded-3xl bg-white/80 border border-[#eadfca] shadow-sm space-y-4">
-            <h4 className="font-serif font-bold text-[#261b17] text-base flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#d8a43b]"></span>
+          <div className="p-6 rounded-3xl bg-white/80 border border-[var(--brand-border)] shadow-sm space-y-4">
+            <h4 className="font-serif font-bold text-[var(--brand-ink)] text-base flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand-accent)]"></span>
               Ketentuan & Kenyamanan Tamu
             </h4>
-            <ul className="text-xs text-[#74635c] space-y-3 leading-relaxed">
+            <ul className="text-xs text-[var(--brand-muted)] space-y-3 leading-relaxed">
               <li className="flex items-start gap-2.5">
-                <span className="text-[#8f1d20] font-bold text-sm leading-none">•</span>
+                <span className="text-[var(--brand-primary)] font-bold text-sm leading-none">•</span>
                 <span>
                   Buka setiap hari: <strong>{profile.openingHours}</strong>
                 </span>
               </li>
               <li className="flex items-start gap-2.5">
-                <span className="text-[#8f1d20] font-bold text-sm leading-none">•</span>
+                <span className="text-[var(--brand-primary)] font-bold text-sm leading-none">•</span>
                 <span>
                   Reservasi berstatus <strong>Terkonfirmasi Otomatis</strong> — sistem langsung mengunci slot meja Anda tanpa menunggu verifikasi manual kasir.
                 </span>
               </li>
               <li className="flex items-start gap-2.5">
-                <span className="text-[#8f1d20] font-bold text-sm leading-none">•</span>
+                <span className="text-[var(--brand-primary)] font-bold text-sm leading-none">•</span>
                 <span>
                   Simpan <strong>Kode Reservasi</strong> untuk ditunjukkan kepada staf saat Anda tiba di restoran.
                 </span>
@@ -349,13 +367,13 @@ export default function ReservationSection({
             </ul>
           </div>
 
-          <div className="p-5 rounded-3xl bg-[#8f1d20]/5 border border-[#8f1d20]/15 flex items-center gap-4 shadow-2xs">
-            <div className="w-12 h-12 rounded-2xl bg-[#8f1d20] text-white flex items-center justify-center text-xl font-bold font-serif shrink-0 shadow-sm">
+          <div className="p-5 rounded-3xl bg-[var(--brand-primary)]/5 border border-[var(--brand-primary)]/15 flex items-center gap-4 shadow-2xs">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--brand-primary)] text-white flex items-center justify-center text-xl font-bold font-serif shrink-0 shadow-sm">
               ⚡
             </div>
             <div>
-              <p className="text-xs text-[#8f1d20] font-bold uppercase tracking-wider">Garansi Bebas Double-Booking</p>
-              <p className="text-xs text-[#74635c]">
+              <p className="text-xs text-[var(--brand-primary)] font-bold uppercase tracking-wider">Garansi Bebas Double-Booking</p>
+              <p className="text-xs text-[var(--brand-muted)]">
                 Sistem mengunci slot meja secara <strong>real-time</strong> untuk menjamin meja Anda tidak akan diberikan ke tamu lain pada jam tersebut.
               </p>
             </div>
@@ -366,28 +384,28 @@ export default function ReservationSection({
         <div className="lg:col-span-7">
           {createdReservation ? (
             /* Ticket Confirmation View */
-            <div className="bg-white p-8 md:p-10 rounded-3xl border border-[#d8cbbb] shadow-xl shadow-[#8f1d20]/5 space-y-6">
-              <div className="text-center pb-6 border-b border-dashed border-[#d8cbbb]">
+            <div className="bg-white p-8 md:p-10 rounded-3xl border border-[var(--brand-border-strong)] shadow-xl shadow-[var(--brand-primary)]/5 space-y-6">
+              <div className="text-center pb-6 border-b border-dashed border-[var(--brand-border-strong)]">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-3xl mb-3 shadow-xs">
                   ✓
                 </div>
                 <div className="inline-block px-3 py-1 mb-2 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[11px] font-extrabold uppercase tracking-wider">
                   ⚡ Auto-Confirmed by System
                 </div>
-                <h3 className="font-serif text-2xl md:text-3xl font-bold text-[#261b17]">
+                <h3 className="font-serif text-2xl md:text-3xl font-bold text-[var(--brand-ink)]">
                   Meja Anda Berhasil Dikunci!
                 </h3>
-                <p className="text-xs md:text-sm text-[#74635c] mt-1">
+                <p className="text-xs md:text-sm text-[var(--brand-muted)] mt-1">
                   Reservasi telah terkonfirmasi otomatis oleh sistem. Meja {createdReservation.tableNumber} siap untuk kehadiran Anda.
                 </p>
               </div>
 
               {/* Ticket Card Box */}
-              <div className="bg-[#fffaf0] p-6 rounded-3xl border-2 border-dashed border-[#d8a43b] text-center space-y-4 shadow-xs">
-                <span className="text-[11px] font-bold uppercase tracking-widest text-[#74635c]">
+              <div className="bg-[var(--brand-bg)] p-6 rounded-3xl border-2 border-dashed border-[var(--brand-accent)] text-center space-y-4 shadow-xs">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--brand-muted)]">
                   KODE TIKET & E-PASS RESERVASI
                 </span>
-                <div className="font-serif text-4xl md:text-5xl font-extrabold text-[#8f1d20] tracking-wider">
+                <div className="font-serif text-4xl md:text-5xl font-extrabold text-[var(--brand-primary)] tracking-wider">
                   {createdReservation.code}
                 </div>
 
@@ -423,38 +441,38 @@ export default function ReservationSection({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left pt-4 border-t border-[#eadfca] text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left pt-4 border-t border-[var(--brand-border)] text-xs">
                   <div>
-                    <span className="text-[#74635c] block">Nama</span>
-                    <strong className="text-[#261b17]">{createdReservation.customerName}</strong>
+                    <span className="text-[var(--brand-muted)] block">Nama</span>
+                    <strong className="text-[var(--brand-ink)]">{createdReservation.customerName}</strong>
                   </div>
                   <div>
-                    <span className="text-[#74635c] block">Waktu</span>
-                    <strong className="text-[#261b17]">{createdReservation.date}, {createdReservation.time}</strong>
+                    <span className="text-[var(--brand-muted)] block">Waktu</span>
+                    <strong className="text-[var(--brand-ink)]">{createdReservation.date}, {createdReservation.time}</strong>
                   </div>
                   <div>
-                    <span className="text-[#74635c] block">Kapasitas</span>
-                    <strong className="text-[#261b17]">{createdReservation.guestCount} Orang</strong>
+                    <span className="text-[var(--brand-muted)] block">Kapasitas</span>
+                    <strong className="text-[var(--brand-ink)]">{createdReservation.guestCount} Orang</strong>
                   </div>
                   <div>
-                    <span className="text-[#74635c] block">Meja Ditunjuk</span>
-                    <strong className="text-[#8f1d20]">{createdReservation.tableNumber} ({createdReservation.tableArea})</strong>
+                    <span className="text-[var(--brand-muted)] block">Meja Ditunjuk</span>
+                    <strong className="text-[var(--brand-primary)]">{createdReservation.tableNumber} ({createdReservation.tableArea})</strong>
                   </div>
                 </div>
               </div>
 
               {/* Action buttons if not paid yet */}
               {createdReservation.paymentStatus !== "settlement" && (
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-[#8f1d20]/10 to-[#d8a43b]/15 border border-[#8f1d20]/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-[var(--brand-primary)]/10 to-[var(--brand-accent)]/15 border border-[var(--brand-primary)]/20 flex flex-col sm:flex-row items-center justify-between gap-3">
                   <div className="text-left text-xs">
-                    <p className="font-bold text-[#8f1d20]">Kunci Meja dengan Bayar Deposit</p>
-                    <p className="text-[#74635c]">Bayar Rp 50.000 via QRIS/VA/E-Wallet agar langsung disetujui otomatis.</p>
+                    <p className="font-bold text-[var(--brand-primary)]">Kunci Meja dengan Bayar Deposit</p>
+                    <p className="text-[var(--brand-muted)]">Bayar Rp 50.000 via QRIS/VA/E-Wallet agar langsung disetujui otomatis.</p>
                   </div>
                   <button
                     type="button"
                     disabled={isProcessingPayment}
                     onClick={() => triggerMidtransSnap(createdReservation, DEFAULT_DEPOSIT_AMOUNT)}
-                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#8f1d20] hover:bg-[#731518] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
                   >
                     {isProcessingPayment ? (
                       <>
@@ -475,9 +493,9 @@ export default function ReservationSection({
                 <button
                   type="button"
                   onClick={handleCopyCode}
-                  className="flex-1 min-w-[140px] py-3 px-4 rounded-xl border border-[#d8cbbb] text-xs font-bold text-[#261b17] hover:bg-neutral-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 min-w-[140px] py-3 px-4 rounded-xl border border-[var(--brand-border-strong)] text-xs font-bold text-[var(--brand-ink)] hover:bg-neutral-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <svg className="w-4 h-4 text-[#74635c]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-[var(--brand-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                   <span>{copied ? "✓ Tersalin!" : "Salin Kode Tiket"}</span>
@@ -495,7 +513,7 @@ export default function ReservationSection({
                   <button
                     type="button"
                     onClick={() => onOpenTrackModalWithCode(createdReservation.code)}
-                    className="flex-1 min-w-[160px] py-3 px-4 rounded-xl bg-[#261b17] text-white text-xs font-bold hover:bg-[#8f1d20] transition-colors cursor-pointer text-center"
+                    className="flex-1 min-w-[160px] py-3 px-4 rounded-xl bg-[var(--brand-ink)] text-white text-xs font-bold hover:bg-[var(--brand-primary)] transition-colors cursor-pointer text-center"
                   >
                     Lacak Status Tiket →
                   </button>
@@ -504,7 +522,7 @@ export default function ReservationSection({
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="py-3 px-4 rounded-xl border border-transparent text-xs font-bold text-[#74635c] hover:text-[#8f1d20] transition-colors cursor-pointer"
+                  className="py-3 px-4 rounded-xl border border-transparent text-xs font-bold text-[var(--brand-muted)] hover:text-[var(--brand-primary)] transition-colors cursor-pointer"
                 >
                   Pesan Meja Lain
                 </button>
@@ -514,13 +532,13 @@ export default function ReservationSection({
             /* Main Reservation Form */
             <form
               onSubmit={handleSubmit}
-              className="bg-white p-8 md:p-10 rounded-3xl border border-[#d8cbbb] shadow-xl shadow-[#8f1d20]/5 space-y-5"
+              className="bg-white p-8 md:p-10 rounded-3xl border border-[var(--brand-border-strong)] shadow-xl shadow-[var(--brand-primary)]/5 space-y-5"
             >
-              <div className="border-b border-[#f1e6d4] pb-4">
-                <h3 className="font-serif text-2xl font-bold text-[#261b17]">
+              <div className="border-b border-[var(--brand-border-soft)] pb-4">
+                <h3 className="font-serif text-2xl font-bold text-[var(--brand-ink)]">
                   Formulir Pemesanan Meja
                 </h3>
-                <p className="text-xs text-[#74635c] mt-1">
+                <p className="text-xs text-[var(--brand-muted)] mt-1">
                   Pilih waktu, jumlah tamu, dan preferensi area untuk reservasi instan.
                 </p>
               </div>
@@ -534,7 +552,7 @@ export default function ReservationSection({
 
               {/* 1-Tap Date Presets */}
               <div>
-                <label className="block text-xs font-bold text-[#261b17] mb-1.5">
+                <label className="block text-xs font-bold text-[var(--brand-ink)] mb-1.5">
                   Pilihan Cepat Tanggal
                 </label>
                 <div className="grid grid-cols-3 gap-2 mb-3">
@@ -543,8 +561,8 @@ export default function ReservationSection({
                     onClick={() => setFormData({ ...formData, date: todayStr })}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                       formData.date === todayStr
-                        ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
-                        : "bg-[#fffaf0] text-[#74635c] border-[#d8cbbb] hover:border-[#8f1d20]"
+                        ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-xs"
+                        : "bg-[var(--brand-bg)] text-[var(--brand-muted)] border-[var(--brand-border-strong)] hover:border-[var(--brand-primary)]"
                     }`}
                   >
                     Hari Ini
@@ -554,8 +572,8 @@ export default function ReservationSection({
                     onClick={() => setFormData({ ...formData, date: tomorrowStr })}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                       formData.date === tomorrowStr
-                        ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
-                        : "bg-[#fffaf0] text-[#74635c] border-[#d8cbbb] hover:border-[#8f1d20]"
+                        ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-xs"
+                        : "bg-[var(--brand-bg)] text-[var(--brand-muted)] border-[var(--brand-border-strong)] hover:border-[var(--brand-primary)]"
                     }`}
                   >
                     Besok
@@ -565,8 +583,8 @@ export default function ReservationSection({
                     onClick={() => setFormData({ ...formData, date: dayAfterStr })}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                       formData.date === dayAfterStr
-                        ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
-                        : "bg-[#fffaf0] text-[#74635c] border-[#d8cbbb] hover:border-[#8f1d20]"
+                        ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-xs"
+                        : "bg-[var(--brand-bg)] text-[var(--brand-muted)] border-[var(--brand-border-strong)] hover:border-[var(--brand-primary)]"
                     }`}
                   >
                     Lusa
@@ -576,7 +594,7 @@ export default function ReservationSection({
 
               {/* 1-Tap Peak Hours Presets */}
               <div>
-                <label className="block text-xs font-bold text-[#261b17] mb-1.5">
+                <label className="block text-xs font-bold text-[var(--brand-ink)] mb-1.5">
                   Jam Favorit Kedatangan
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
@@ -592,8 +610,8 @@ export default function ReservationSection({
                       onClick={() => setFormData({ ...formData, time: preset.time })}
                       className={`py-1.5 px-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer truncate ${
                         formData.time === preset.time
-                          ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
-                          : "bg-white text-[#74635c] border-[#d8cbbb] hover:border-[#8f1d20]"
+                          ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-xs"
+                          : "bg-white text-[var(--brand-muted)] border-[var(--brand-border-strong)] hover:border-[var(--brand-primary)]"
                       }`}
                     >
                       {preset.label}
@@ -605,8 +623,8 @@ export default function ReservationSection({
               {/* Name & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="reservation-name" className="block text-xs font-bold text-[#261b17] mb-1.5">
-                    Nama Pemesan <span className="text-[#8f1d20]">*</span>
+                  <label htmlFor="reservation-name" className="block text-xs font-bold text-[var(--brand-ink)] mb-1.5">
+                    Nama Pemesan <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <input
                     id="reservation-name"
@@ -617,12 +635,12 @@ export default function ReservationSection({
                     placeholder="Contoh: Sdr. Budi Setiawan"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#d8cbbb] focus:outline-none focus:ring-2 focus:ring-[#d8a43b] transition-all"
+                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[var(--brand-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)] transition-all"
                   />
                 </div>
                 <div>
-                  <label htmlFor="reservation-phone" className="block text-xs font-bold text-[#261b17] mb-1.5">
-                    Nomor WhatsApp <span className="text-[#74635c] font-normal text-[11px]">(Opsional)</span>
+                  <label htmlFor="reservation-phone" className="block text-xs font-bold text-[var(--brand-ink)] mb-1.5">
+                    Nomor WhatsApp <span className="text-[var(--brand-muted)] font-normal text-[11px]">(Opsional)</span>
                   </label>
                   <input
                     id="reservation-phone"
@@ -633,7 +651,7 @@ export default function ReservationSection({
                     placeholder="Contoh: 081298765432"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#d8cbbb] focus:outline-none focus:ring-2 focus:ring-[#d8a43b] transition-all"
+                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[var(--brand-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)] transition-all"
                   />
                 </div>
               </div>
@@ -641,7 +659,7 @@ export default function ReservationSection({
               {/* Custom Date, Custom Time, Guests */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label htmlFor="reservation-date" className="block text-xs font-bold text-[#261b17] mb-1.5">
+                  <label htmlFor="reservation-date" className="block text-xs font-bold text-[var(--brand-ink)] mb-1.5">
                     Pilih Tanggal Lain
                   </label>
                   <input
@@ -652,11 +670,11 @@ export default function ReservationSection({
                     min={todayStr}
                     value={formData.date}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#d8cbbb] focus:outline-none focus:ring-2 focus:ring-[#d8a43b] transition-all bg-white"
+                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[var(--brand-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)] transition-all bg-white"
                   />
                 </div>
                 <div>
-                  <label htmlFor="reservation-time" className="block text-xs font-bold text-[#261b17] mb-1.5">
+                  <label htmlFor="reservation-time" className="block text-xs font-bold text-[var(--brand-ink)] mb-1.5">
                     Pilih Jam Lain
                   </label>
                   <input
@@ -666,19 +684,19 @@ export default function ReservationSection({
                     required
                     value={formData.time}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#d8cbbb] focus:outline-none focus:ring-2 focus:ring-[#d8a43b] transition-all bg-white"
+                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[var(--brand-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)] transition-all bg-white"
                   />
                 </div>
                 <div>
-                  <label htmlFor="reservation-guests" className="block text-xs font-bold text-[#261b17] mb-1.5">
-                    Jumlah Tamu <span className="text-[#8f1d20]">*</span>
+                  <label htmlFor="reservation-guests" className="block text-xs font-bold text-[var(--brand-ink)] mb-1.5">
+                    Jumlah Tamu <span className="text-[var(--brand-primary)]">*</span>
                   </label>
                   <select
                     id="reservation-guests"
                     name="guests"
                     value={formData.guests}
                     onChange={(e) => setFormData({ ...formData, guests: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#d8cbbb] focus:outline-none focus:ring-2 focus:ring-[#d8a43b] transition-all bg-white"
+                    className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[var(--brand-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)] transition-all bg-white"
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8, 10].map((n) => (
                       <option key={n} value={n}>
@@ -691,7 +709,7 @@ export default function ReservationSection({
 
               {/* Preferred Area */}
               <div>
-                <label className="block text-xs font-bold text-[#261b17] mb-1.5">
+                <label className="block text-xs font-bold text-[var(--brand-ink)] mb-1.5">
                   Preferensi Area Meja
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -702,8 +720,8 @@ export default function ReservationSection({
                       onClick={() => setFormData({ ...formData, area: ar })}
                       className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                         formData.area === ar
-                          ? "bg-[#8f1d20] text-white border-[#8f1d20] shadow-xs"
-                          : "bg-white text-[#74635c] border-[#d8cbbb] hover:border-[#8f1d20]/50"
+                          ? "bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-xs"
+                          : "bg-white text-[var(--brand-muted)] border-[var(--brand-border-strong)] hover:border-[var(--brand-primary)]/50"
                       }`}
                     >
                       {ar === "Semua" ? "Bebas / Rekomendasi" : ar}
@@ -740,16 +758,16 @@ export default function ReservationSection({
               )}
 
               {/* Payment Method / Deposit Selection */}
-              <div className="pt-2 border-t border-[#f1e6d4] space-y-2">
-                <p className="text-xs font-bold text-[#261b17]">
+              <div className="pt-2 border-t border-[var(--brand-border-soft)] space-y-2">
+                <p className="text-xs font-bold text-[var(--brand-ink)]">
                   Opsi Pembayaran & Konfirmasi:
                 </p>
                 <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-[#d8a43b] ${
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-[var(--brand-accent)] ${
                       formData.payDepositNow
-                        ? "border-[#8f1d20] bg-[#8f1d20]/5 shadow-xs"
-                        : "border-[#d8cbbb] bg-white hover:border-[#8f1d20]/40"
+                        ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]/5 shadow-xs"
+                        : "border-[var(--brand-border-strong)] bg-white hover:border-[var(--brand-primary)]/40"
                     }`}
                   >
                     <input
@@ -760,23 +778,23 @@ export default function ReservationSection({
                       className="sr-only"
                     />
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-[#8f1d20] flex items-center gap-1.5">
+                      <span className="font-bold text-xs text-[var(--brand-primary)] flex items-center gap-1.5">
                         <span>💳</span> Bayar Deposit (Rp 50.000)
                       </span>
                       {formData.payDepositNow && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#8f1d20]"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand-primary)]"></span>
                       )}
                     </div>
-                    <p className="text-[11px] text-[#74635c] leading-relaxed">
+                    <p className="text-[11px] text-[var(--brand-muted)] leading-relaxed">
                       <strong>Konfirmasi Instan</strong> via Midtrans Snap (QRIS, GoPay, ShopeePay, Virtual Account).
                     </p>
                   </label>
 
                   <label
-                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-[#d8a43b] ${
+                    className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-[var(--brand-accent)] ${
                       !formData.payDepositNow
-                        ? "border-[#8f1d20] bg-[#8f1d20]/5 shadow-xs"
-                        : "border-[#d8cbbb] bg-white hover:border-[#8f1d20]/40"
+                        ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]/5 shadow-xs"
+                        : "border-[var(--brand-border-strong)] bg-white hover:border-[var(--brand-primary)]/40"
                     }`}
                   >
                     <input
@@ -787,14 +805,14 @@ export default function ReservationSection({
                       className="sr-only"
                     />
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-[#261b17] flex items-center gap-1.5">
+                      <span className="font-bold text-xs text-[var(--brand-ink)] flex items-center gap-1.5">
                         <span>🏢</span> Bayar di Restoran
                       </span>
                       {!formData.payDepositNow && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#8f1d20]"></span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-[var(--brand-primary)]"></span>
                       )}
                     </div>
-                    <p className="text-[11px] text-[#74635c] leading-relaxed">
+                    <p className="text-[11px] text-[var(--brand-muted)] leading-relaxed">
                       Meja <strong>Terkunci Otomatis</strong>. Pembayaran dilakukan langsung saat bersantap di restoran.
                     </p>
                   </label>
@@ -803,7 +821,7 @@ export default function ReservationSection({
 
               {/* Notes */}
               <div>
-                <label htmlFor="reservation-notes" className="block text-xs font-bold text-[#261b17] mb-1.5">
+                <label htmlFor="reservation-notes" className="block text-xs font-bold text-[var(--brand-ink)] mb-1.5">
                   Catatan Tambahan & Permintaan Khusus (Opsional)
                 </label>
                 <textarea
@@ -813,7 +831,7 @@ export default function ReservationSection({
                   placeholder="Misal: Request sambal ijo lebih, sediakan baby chair, ingin pesan Rendang & Ayam Pop, dll."
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-[#d8cbbb] focus:outline-none focus:ring-2 focus:ring-[#d8a43b] transition-all"
+                  className="w-full px-3.5 py-2 text-sm rounded-xl border border-[var(--brand-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)] transition-all"
                 />
               </div>
 
@@ -824,7 +842,7 @@ export default function ReservationSection({
                 className={`w-full py-3.5 px-6 rounded-2xl font-bold text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2 ${
                   availability && !availability.available
                     ? "bg-neutral-400 cursor-not-allowed opacity-70"
-                    : "bg-[#8f1d20] hover:bg-[#731518] shadow-[#8f1d20]/25 cursor-pointer hover:scale-[1.01]"
+                    : "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] shadow-[var(--brand-primary)]/25 cursor-pointer hover:scale-[1.01]"
                 }`}
               >
                 {isProcessingPayment ? (

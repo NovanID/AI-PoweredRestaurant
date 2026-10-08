@@ -9,7 +9,7 @@ import { ConversationStateMachine } from './state-machine';
 import { ContextEngine } from './context-engine';
 import { ToolExecutor } from '../domain/tool-executor';
 import { GeminiClient } from './gemini-client';
-import { restaurantStore } from '../restaurant-store';
+import { loadTenantRuntimeData } from './tenant-data';
 import { ObservabilityManager } from '../infrastructure/observability';
 import { Reservation } from '../domain/types';
 import { ActionButtonEngine } from './action-button-engine';
@@ -59,6 +59,12 @@ export class StreamingAIOrchestrator {
 
           const lowerUserMsg = userMessage.toLowerCase().trim();
 
+          // 1b. Load THIS tenant's data from PostgreSQL (single source of truth).
+          // If the tenant/DB fails, we must NOT answer from another tenant's data.
+          const { profile, menuSnapshot, availableTablesCount } = await loadTenantRuntimeData(
+            currentSession.tenantId
+          );
+
           // 2. Check cancel active order intent
           if (
             (lowerUserMsg.includes('batal pesan') || lowerUserMsg.includes('batalkan pesan')) &&
@@ -101,7 +107,7 @@ export class StreamingAIOrchestrator {
             const executedToolResult = await ToolExecutor.execute({
               toolName: 'create_takeaway_order',
               rawArgs: {
-                customerName: currentSession.metadata?.customerName || 'Pelanggan Raso Minang',
+                customerName: currentSession.metadata?.customerName || `Pelanggan ${profile.name}`,
                 customerPhone: currentSession.metadata?.customerPhone || '-',
                 items: ao?.detailedItems || [],
                 notes: ao?.notes,
@@ -168,7 +174,7 @@ export class StreamingAIOrchestrator {
               const res = executedToolResult.data as Reservation;
               currentSession = ConversationStateMachine.transition(currentSession, 'COMPLETED', null);
 
-              const replyText = `🎉 Reservasi Anda **BERHASIL DIKONFIRMASI**!\n\n📋 **Detail Booking:**\n• Kode Tiket: **${res.code}**\n• Meja: **${res.tableNumber} (${res.tableArea})**\n• Waktu: **${res.date} pukul ${res.time} WIB** (${res.guestCount} orang)\n\nTiket sudah tersimpan. Sampai jumpa di Raso Minang!`;
+              const replyText = `🎉 Reservasi Anda **BERHASIL DIKONFIRMASI**!\n\n📋 **Detail Booking:**\n• Kode Tiket: **${res.code}**\n• Meja: **${res.tableNumber} (${res.tableArea})**\n• Waktu: **${res.date} pukul ${res.time} WIB** (${res.guestCount} orang)\n\nTiket sudah tersimpan. Sampai jumpa di ${profile.name}!`;
 
               const actionButtons = [
                 { label: `🎫 Lacak Tiket ${res.code}`, action: `check_code_${res.code}` },
@@ -187,11 +193,7 @@ export class StreamingAIOrchestrator {
             }
           }
 
-          // 5. Build Assembled Grounded Context
-          const profile = restaurantStore.getProfile();
-          const menuSnapshot = restaurantStore.getMenuItems();
-          const availableTablesCount = restaurantStore.getTables().filter((t) => t.status === 'available').length;
-
+          // 5. Build Assembled Grounded Context (data already loaded above from PostgreSQL)
           const assembledContext = ContextEngine.buildContext({
             session: currentSession,
             profile,

@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AIOrchestrator } from "../lib/ai/orchestrator";
 import { ConversationSession } from "../lib/ai/types";
 import { TOOL_REGISTRY } from "../lib/ai/tool-registry";
-import { restaurantStore } from "../lib/restaurant-store";
 import { useRestaurant } from "../lib/use-restaurant";
 
 export default function AIChatMonitoringTab() {
-  const { profile, tables, reservations } = useRestaurant();
+  const { profile, tables, reservations } = useRestaurant({ mode: "admin" });
 
   // AI Configuration State
   const [personaTone, setPersonaTone] = useState<"minang" | "formal" | "casual">("minang");
@@ -91,10 +89,17 @@ export default function AIChatMonitoringTab() {
 
     const startTime = performance.now();
     try {
-      const result = await AIOrchestrator.processMessage({
-        userMessage: simPrompt,
-        session: testSession,
+      // Run the simulator through the server /api/chat endpoint (non-streaming)
+      // so the AI flow executes server-side against PostgreSQL for this tenant.
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: simPrompt, session: testSession, stream: false }),
       });
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || `HTTP ${res.status}`);
+      }
       const endTime = performance.now();
 
       setSimResult({

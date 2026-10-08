@@ -9,6 +9,59 @@
   --muted: #74635c;
   --border: #eadfca;
   --white: #ffffff;
+
+  /* Storefront brand tokens (default: Raso Minang).
+     Overridden per tenant via [data-tenant="..."] below. */
+  --brand-primary: #8f1d20;
+  --brand-primary-hover: #731518;
+  --brand-primary-dark: #6a1215;
+  --brand-primary-mid: #7d191c;
+  --brand-accent: #d8a43b;
+  --brand-accent-hover: #c49230;
+  --brand-accent-light: #ffd98a;
+  --brand-bg: #fffaf0;
+  --brand-bg-alt: #faf7f2;
+  --brand-surface: #f4ebe1;
+  --brand-ink: #261b17;
+  --brand-muted: #74635c;
+  --brand-muted-2: #a3948e;
+  --brand-border: #eadfca;
+  --brand-border-strong: #d8cbbb;
+  --brand-border-soft: #f1e6d4;
+  --brand-border-alt: #e2d8cb;
+  --brand-footer: #261b17;
+  --brand-footer-border: #3d2c26;
+}
+
+/* Tenant 2: Kopi Nusantara Cafe — overrides storefront brand tokens */
+[data-tenant="kopi-nusantara-cafe-02"] {
+  --red: #4a2c1d;
+  --dark-red: #33200f;
+  --gold: #c98a3d;
+  --cream: #faf7f2;
+  --ink: #221a14;
+  --muted: #6f6259;
+  --border: #e3d9cc;
+
+  --brand-primary: #4a2c1d;
+  --brand-primary-hover: #3a2214;
+  --brand-primary-dark: #33200f;
+  --brand-primary-mid: #40261a;
+  --brand-accent: #c98a3d;
+  --brand-accent-hover: #b3782f;
+  --brand-accent-light: #e8c48a;
+  --brand-bg: #faf7f2;
+  --brand-bg-alt: #f5efe6;
+  --brand-surface: #efe8de;
+  --brand-ink: #221a14;
+  --brand-muted: #6f6259;
+  --brand-muted-2: #9b8d82;
+  --brand-border: #e3d9cc;
+  --brand-border-strong: #d4c6b4;
+  --brand-border-soft: #ece3d6;
+  --brand-border-alt: #ddd0be;
+  --brand-footer: #221a14;
+  --brand-footer-border: #382b21;
 }
 
 * {

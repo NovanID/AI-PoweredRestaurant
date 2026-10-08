@@ -4,12 +4,11 @@ import {
   TableArea,
   TableHoldLease,
   TenantId,
-  ReservationStatus,
 } from './types';
-import { restaurantStore } from '../restaurant-store';
 import { BusinessRuleEngine } from './business-rules';
-
 import { RedisLeaseManager } from '../infrastructure/redis-lease-manager';
+import { PrismaRestaurantRepository } from '../db/prisma-repository';
+import { getTenantCodePrefix } from '../tenants';
 
 export interface AvailabilityResult {
   available: boolean;
@@ -17,20 +16,13 @@ export interface AvailabilityResult {
   reason?: string;
 }
 
+/**
+ * Reservation domain service — PostgreSQL is the single source of truth.
+ * Redis is only used for short-lived hold leases (two-phase booking).
+ */
 export class ReservationService {
   /**
-   * Helper: check if two time slots overlap (assuming standard 90 mins slot)
-   */
-  private static isTimeOverlap(timeA: string, timeB: string, durationMinutes = 90): boolean {
-    const [hA, mA] = timeA.split(':').map(Number);
-    const [hB, mB] = timeB.split(':').map(Number);
-    const minA = hA * 60 + (mA || 0);
-    const minB = hB * 60 + (mB || 0);
-    return Math.abs(minA - minB) < durationMinutes;
-  }
-
-  /**
-   * 1. Check Table Availability (checks reservations & Redis hold leases)
+   * 1. Check Table Availability (PostgreSQL reservations + Redis hold leases)
    */
   public static async checkAvailability(params: {
     tenantId: TenantId;
@@ -39,72 +31,36 @@ export class ReservationService {
     guestCount: number;
     preferredArea?: TableArea;
   }): Promise<AvailabilityResult> {
-    const { date, time, guestCount, preferredArea } = params;
-    const profile = restaurantStore.getProfile();
+    const { tenantId, date, time, guestCount, preferredArea } = params;
 
-    // 1. Business Rule: Operating Hours
+    const profile = await PrismaRestaurantRepository.getProfile(tenantId);
+    if (!profile) {
+      return {
+        available: false,
+        availableTables: [],
+        reason: `Data restoran untuk tenant "${tenantId}" tidak ditemukan di database.`,
+      };
+    }
+
+    // Business rules first (operating hours, capacity)
     const hoursCheck = BusinessRuleEngine.validateOperatingHours(profile, time);
     if (!hoursCheck.passed) {
       return { available: false, availableTables: [], reason: hoursCheck.message };
     }
 
-    // 2. Business Rule: Capacity
     const capacityCheck = BusinessRuleEngine.validateCapacity(guestCount, preferredArea);
     if (!capacityCheck.passed) {
       return { available: false, availableTables: [], reason: capacityCheck.message };
     }
 
-    const allTables = restaurantStore.getTables();
-    const suitableTables = allTables.filter((tbl) => {
-      if (tbl.status === 'maintenance') return false;
-      if (tbl.capacity < guestCount) return false;
-      if (preferredArea && tbl.area !== preferredArea) return false;
-      return true;
+    // Repository checks DB reservations + Redis leases
+    return PrismaRestaurantRepository.checkAvailability({
+      tenantId,
+      date,
+      time,
+      guestCount,
+      preferredArea,
     });
-
-    if (suitableTables.length === 0) {
-      return {
-        available: false,
-        availableTables: [],
-        reason: preferredArea
-          ? `Tidak ditemukan meja di area ${preferredArea} yang mencukupi untuk ${guestCount} tamu.`
-          : `Tidak ada meja yang cukup untuk kapasitas ${guestCount} orang.`,
-      };
-    }
-
-    // Filter out tables that already have active reservations
-    const activeReservations = restaurantStore.getAllReservations().filter((r) => {
-      if (r.date !== date) return false;
-      if (r.status === 'confirmed' || r.status === 'seated' || r.status === 'pending') {
-        return this.isTimeOverlap(r.time, time);
-      }
-      return false;
-    });
-
-    // Check active hold leases from RedisLeaseManager
-    const activeLeases = await RedisLeaseManager.getAllActiveLeases();
-    const activeTimeLeases = activeLeases.filter((l) => {
-      return l.date === date && this.isTimeOverlap(l.time, time);
-    });
-
-    const freeTables = suitableTables.filter((tbl) => {
-      const hasResConflict = activeReservations.some((r) => r.tableId === tbl.id);
-      const hasLeaseConflict = activeTimeLeases.some((l) => l.tableId === tbl.id);
-      return !hasResConflict && !hasLeaseConflict;
-    });
-
-    if (freeTables.length === 0) {
-      return {
-        available: false,
-        availableTables: [],
-        reason: `Semua meja untuk kapasitas ${guestCount} tamu pada pukul ${time} tanggal ${date} sudah terisi. Silakan pilih jam lain.`,
-      };
-    }
-
-    return {
-      available: true,
-      availableTables: freeTables,
-    };
   }
 
   /**
@@ -150,7 +106,9 @@ export class ReservationService {
   }
 
   /**
-   * 3. Atomic Commit of Leased Reservation (Releases Redis lock on completion)
+   * 3. Atomic Commit of Leased Reservation into PostgreSQL.
+   * The DB insert is authoritative: if it fails (double-book, invalid table,
+   * connectivity), the booking FAILS — never silently succeed.
    */
   public static async commitLeasedReservation(params: {
     leaseToken: string;
@@ -175,48 +133,83 @@ export class ReservationService {
       };
     }
 
-    // Commit to restaurant store
-    const result = restaurantStore.createReservation({
-      customerName: params.customerName,
-      customerPhone: params.customerPhone || '-',
-      date: lease.date,
-      time: lease.time,
-      guestCount: lease.guestCount,
-      preferredArea: lease.tableArea,
-      notes: params.notes,
-      actor: params.actor || 'AI Reservation Service',
-    });
+    // Tenant safety: the lease itself carries the tenantId captured at hold time.
+    const prefix = getTenantCodePrefix(lease.tenantId);
+    const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const code = `${prefix}-${randomChars}`;
 
-    // Remove lease on success
-    if (result.success) {
+    try {
+      const reservation = await PrismaRestaurantRepository.createReservation({
+        tenantId: lease.tenantId,
+        code,
+        customerName: params.customerName,
+        customerPhone: params.customerPhone || '-',
+        tableId: lease.tableId,
+        tableNumber: lease.tableNumber,
+        tableArea: lease.tableArea,
+        date: lease.date,
+        time: lease.time,
+        guestCount: lease.guestCount,
+        notes: params.notes,
+      });
+
+      // Release the hold only after the DB row exists
       await RedisLeaseManager.releaseHoldLease(params.leaseToken);
+
+      return {
+        success: true,
+        reservation,
+        message: `Reservasi berhasil dikonfirmasi otomatis oleh sistem dengan kode ${code}. Meja Anda telah terkunci!`,
+      };
+    } catch (dbErr: any) {
+      // DB failure = booking failure. Keep the lease so the slot stays held
+      // until TTL expiry, preventing another guest from racing into it.
+      console.error('[ReservationService] commitLeasedReservation DB error:', dbErr);
+      return {
+        success: false,
+        message: dbErr?.message || 'Gagal menyimpan reservasi ke database. Silakan coba lagi.',
+      };
     }
-
-    return result;
   }
 
   /**
-   * 4. Query Reservation by Code
+   * 4. Query Reservation by Code (tenant-scoped)
    */
-  public static getReservation(code: string): Reservation | undefined {
-    return restaurantStore.getReservationByCode(code);
+  public static async getReservation(tenantId: TenantId, code: string): Promise<Reservation | null> {
+    return PrismaRestaurantRepository.getReservationByCode(tenantId, code);
   }
 
   /**
-   * 5. Cancel Reservation
+   * 5. Cancel Reservation (tenant-scoped)
    */
-  public static cancelReservation(code: string, actor = 'AI Assistant', reason?: string): { success: boolean; message: string } {
-    return restaurantStore.updateReservationStatus(code, 'cancelled', actor, reason || 'Dibatalkan oleh pelanggan via chat');
-  }
-
-  /**
-   * 6. Reschedule / Update Reservation
-   */
-  public static updateReservation(
+  public static async cancelReservation(
+    tenantId: TenantId,
     code: string,
-    data: { date?: string; time?: string; guestCount?: number; notes?: string },
-    actor = 'AI Assistant'
-  ): { success: boolean; message: string; reservation?: Reservation } {
-    return restaurantStore.updateReservation(code, data, actor);
+    reason?: string
+  ): Promise<{ success: boolean; message: string }> {
+    return PrismaRestaurantRepository.cancelReservation(tenantId, code, reason || 'Dibatalkan oleh pelanggan via chat');
+  }
+
+  /**
+   * 6. Reschedule / Update Reservation (tenant-scoped)
+   */
+  public static async updateReservation(
+    tenantId: TenantId,
+    code: string,
+    data: { date?: string; time?: string; guestCount?: number }
+  ): Promise<{ success: boolean; message: string; reservation?: Reservation }> {
+    if (data.date && data.time) {
+      return PrismaRestaurantRepository.rescheduleReservation(tenantId, code, {
+        newDate: data.date,
+        newTime: data.time,
+        newGuestCount: data.guestCount,
+        actor: 'AI Assistant',
+      });
+    }
+    return PrismaRestaurantRepository.updateReservation(tenantId, code, {
+      newDate: data.date,
+      newTime: data.time,
+      newGuestCount: data.guestCount,
+    });
   }
 }

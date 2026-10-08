@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaRestaurantRepository } from '../../../../lib/db/prisma-repository';
-import { DEFAULT_TENANT_ID } from '../../../../lib/mock-data';
+import { getAdminSession } from '../../../../lib/auth/admin-session';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const tenantId = searchParams.get('tenantId') || DEFAULT_TENANT_ID;
+    // SECURITY: tenantId is derived from the signed admin session claim only.
+    const session = await getAdminSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, message: 'Autentikasi admin diperlukan.' },
+        { status: 401 }
+      );
+    }
+    const tenantId = session.tenantId;
 
     // Fetch all admin state concurrently from PostgreSQL
     const [profile, tables, menu, reservations, auditEvents] = await Promise.all([

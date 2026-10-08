@@ -1,6 +1,7 @@
 import { AIOrchestrator } from './ai/orchestrator';
 import { ConversationSession } from './ai/types';
 import { DEFAULT_TENANT_ID } from './mock-data';
+import { TENANT_BRANDING } from './tenants';
 
 export interface ChatMessage {
   id: string;
@@ -22,18 +23,36 @@ export interface ChatMessage {
 // Global active session map for in-memory tracking
 const activeSessions: Map<string, ConversationSession> = new Map();
 
+let moduleTenantId: string = DEFAULT_TENANT_ID;
+
+/**
+ * Storefront pages set the active tenant once on mount so every chat call
+ * carries the correct tenantId (validated server-side against the registry).
+ */
+export function setChatTenantId(tenantId: string) {
+  moduleTenantId = TENANT_BRANDING[tenantId] ? tenantId : DEFAULT_TENANT_ID;
+  // Tenant switch invalidates the in-flight conversation context
+  activeSessions.clear();
+}
+
 function getOrCreateSession(sessionId = 'default-web-session', pendingConfirmation?: any): ConversationSession {
   let session = activeSessions.get(sessionId);
   if (!session) {
     session = {
       sessionId,
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId: moduleTenantId,
       state: 'IDLE',
       stateVersion: 1,
       history: [],
       lastInteractionAt: Date.now(),
     };
     activeSessions.set(sessionId, session);
+  } else if (session.tenantId !== moduleTenantId) {
+    // Never keep a session bound to another tenant
+    session.tenantId = moduleTenantId;
+    session.history = [];
+    session.pendingAction = undefined;
+    session.metadata = undefined;
   }
 
   if (pendingConfirmation && !session.pendingAction) {

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { streamAIChat, processAIChat, ChatMessage } from "../lib/ai-assistant-service";
+import { useTenant } from "../lib/tenant-context";
 
 interface AIChatWidgetProps {
   onTrackReservation?: (code: string) => void;
@@ -18,6 +19,7 @@ export default function AIChatWidget({
   externalPrompt,
   onClearExternalPrompt,
 }: AIChatWidgetProps) {
+  const { branding } = useTenant();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = isOpenControlled !== undefined ? isOpenControlled : internalIsOpen;
 
@@ -31,7 +33,7 @@ export default function AIChatWidget({
     {
       id: "welcome-1",
       sender: "assistant",
-      text: "Halo! Saya **Asisten AI Raso Minang** 🍛.\n\nAda yang bisa saya bantu hari ini? Anda bisa menanyakan menu autentik, mengecek ketersediaan meja real-time, atau langsung memesan meja dalam 1 pesan.",
+      text: branding.chatWelcome,
       timestamp: "Baru saja",
       actionButtons: [
         { label: "🥘 Menu Favorit", action: "show_menu" },
@@ -41,6 +43,15 @@ export default function AIChatWidget({
       ],
     },
   ]);
+
+  // Rebrand the greeting when the tenant context changes (before any user msg)
+  useEffect(() => {
+    setMessages((prev) =>
+      prev.length === 1 && prev[0].id === "welcome-1"
+        ? [{ ...prev[0], text: branding.chatWelcome }]
+        : prev
+    );
+  }, [branding.chatWelcome]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [pendingConfirmation, setPendingConfirmation] = useState<any>(null);
@@ -216,7 +227,7 @@ export default function AIChatWidget({
         body: JSON.stringify({
           orderId: orderCode,
           amount: amount,
-          customerName: customerName || "Pelanggan Raso Minang",
+          customerName: customerName || branding.defaultCustomerLabel,
         }),
       });
 
@@ -316,7 +327,7 @@ export default function AIChatWidget({
     } else if (btn.action === "pay_cash") {
       handleSendMessage(btn.payload?.message || "Saya akan bayar tunai di kasir");
     } else if (btn.action === "show_menu") {
-      handleSendMessage("Apa saja menu favorit di Raso Minang?");
+      handleSendMessage("Apa saja menu favorit di restoran ini?");
     } else if (btn.action === "check_tables") {
       handleSendMessage("Ada meja kosong untuk 2 orang hari ini?");
     } else if (btn.action === "ask_vip") {
@@ -346,11 +357,11 @@ export default function AIChatWidget({
     <div className="fixed bottom-3 right-3 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end max-w-[calc(100vw-1.5rem)]">
       {/* Speech Bubble / Tooltip Banner when closed */}
       {!isOpen && showTooltipBubble && (
-        <div className="mb-2.5 max-w-[280px] bg-white p-3 rounded-2xl border-2 border-[#d8a43b] shadow-2xl animate-fade-in relative text-xs">
+        <div className="mb-2.5 max-w-[280px] bg-white p-3 rounded-2xl border-2 border-[var(--brand-accent)] shadow-2xl animate-fade-in relative text-xs">
           <button
             onClick={() => setShowTooltipBubble(false)}
             aria-label="Tutup saran AI"
-            className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-[#261b17] text-white text-[10px] flex items-center justify-center cursor-pointer shadow-xs hover:bg-[#8f1d20]"
+            className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-[var(--brand-ink)] text-white text-[10px] flex items-center justify-center cursor-pointer shadow-xs hover:bg-[var(--brand-primary)]"
           >
             ✕
           </button>
@@ -361,44 +372,44 @@ export default function AIChatWidget({
             }}
             className="cursor-pointer group"
           >
-            <div className="flex items-center gap-1.5 font-bold text-[#8f1d20] mb-1">
+            <div className="flex items-center gap-1.5 font-bold text-[var(--brand-primary)] mb-1">
               <span className="text-sm">✨</span>
               <span>Asisten AI Siap Membantu!</span>
             </div>
-            <p className="text-[11px] text-[#74635c] leading-relaxed group-hover:text-[#261b17]">
+            <p className="text-[11px] text-[var(--brand-muted)] leading-relaxed group-hover:text-[var(--brand-ink)]">
               Cek meja kosong, tanya rekomendasi rasa, atau booking instan via chat.
             </p>
-            <div className="mt-1.5 text-[10px] font-bold text-[#8f1d20] flex items-center gap-1">
+            <div className="mt-1.5 text-[10px] font-bold text-[var(--brand-primary)] flex items-center gap-1">
               <span>Mulai Chat Sekarang</span>
               <span>→</span>
             </div>
           </div>
           {/* Tooltip triangle tail */}
-          <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-white border-r-2 border-b-2 border-[#d8a43b] rotate-45"></div>
+          <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-white border-r-2 border-b-2 border-[var(--brand-accent)] rotate-45"></div>
         </div>
       )}
 
       {/* Chat Window */}
       {isOpen && (
         <div
-          className="w-[min(420px,calc(100vw-1.5rem))] h-[min(580px,calc(100dvh-6rem))] bg-white rounded-3xl border border-[#d8cbbb] shadow-2xl flex flex-col overflow-hidden mb-3 animate-fade-in"
+          className="w-[min(420px,calc(100vw-1.5rem))] h-[min(580px,calc(100dvh-6rem))] bg-white rounded-3xl border border-[var(--brand-border-strong)] shadow-2xl flex flex-col overflow-hidden mb-3 animate-fade-in"
           role="dialog"
-          aria-label="Asisten virtual Raso Minang"
+          aria-label={`Asisten virtual ${branding.chatPersonaLabel.replace("Asisten AI ", "")}`}
         >
           {/* Top Bar */}
-          <div className="bg-gradient-to-r from-[#8f1d20] to-[#6a1215] p-4 text-white flex items-center justify-between shadow-md">
+          <div className="bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-primary-dark)] p-4 text-white flex items-center justify-between shadow-md">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-10 h-10 rounded-2xl bg-[#d8a43b] text-[#261b17] flex items-center justify-center font-bold text-lg shadow-sm">
-                  RM
+                <div className="w-10 h-10 rounded-2xl bg-[var(--brand-accent)] text-[var(--brand-ink)] flex items-center justify-center font-bold text-lg shadow-sm">
+                  {branding.logoInitials}
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-[#8f1d20] rounded-full"></span>
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-[var(--brand-primary)] rounded-full"></span>
               </div>
               <div>
                 <h4 className="font-serif font-bold text-base leading-none">
-                  AI Assistant Raso Minang
+                  {branding.chatPersonaLabel}
                 </h4>
-                <p className="text-[11px] text-[#ffd98a] mt-1 flex items-center gap-1">
+                <p className="text-[11px] text-[var(--brand-accent-light)] mt-1 flex items-center gap-1">
                   <span>● Terhubung Real-Time ke Sistem Meja</span>
                 </p>
               </div>
@@ -413,13 +424,13 @@ export default function AIChatWidget({
           </div>
 
           {/* Quick Info Strip */}
-          <div className="bg-[#fffaf0] px-4 py-1.5 border-b border-[#eadfca] text-[11px] text-[#74635c] flex items-center justify-between">
+          <div className="bg-[var(--brand-bg)] px-4 py-1.5 border-b border-[var(--brand-border)] text-[11px] text-[var(--brand-muted)] flex items-center justify-between">
             <span>Sistem Otomatis Grounded</span>
-            <span className="text-[#8f1d20] font-semibold">Terkunci Real-Time</span>
+            <span className="text-[var(--brand-primary)] font-semibold">Terkunci Real-Time</span>
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#faf7f2] text-xs">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[var(--brand-bg-alt)] text-xs">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -429,8 +440,8 @@ export default function AIChatWidget({
               >
                 {/* Tool call indicator if exists */}
                 {msg.toolCall && (
-                  <div className="mb-1.5 px-2.5 py-1 rounded-lg bg-[#261b17]/5 border border-[#261b17]/10 text-[10px] text-[#74635c] flex items-center gap-1.5 font-mono">
-                    <span className="text-[#8f1d20] font-bold">⚡ Tool:</span>
+                  <div className="mb-1.5 px-2.5 py-1 rounded-lg bg-[var(--brand-ink)]/5 border border-[var(--brand-ink)]/10 text-[10px] text-[var(--brand-muted)] flex items-center gap-1.5 font-mono">
+                    <span className="text-[var(--brand-primary)] font-bold">⚡ Tool:</span>
                     <span>{msg.toolCall.name}()</span>
                     <span className="text-emerald-600">✓ Berhasil</span>
                   </div>
@@ -439,8 +450,8 @@ export default function AIChatWidget({
                 <div
                   className={`max-w-[85%] p-3.5 rounded-2xl whitespace-pre-wrap leading-relaxed shadow-xs ${
                     msg.sender === "user"
-                      ? "bg-[#8f1d20] text-white rounded-br-none"
-                      : "bg-white border border-[#eadfca] text-[#261b17] rounded-bl-none"
+                      ? "bg-[var(--brand-primary)] text-white rounded-br-none"
+                      : "bg-white border border-[var(--brand-border)] text-[var(--brand-ink)] rounded-bl-none"
                   }`}
                 >
                   {msg.text}
@@ -453,7 +464,7 @@ export default function AIChatWidget({
                       <button
                         key={idx}
                         onClick={() => handleActionButton(btn)}
-                        className="px-3 py-1 rounded-full bg-white border border-[#d8a43b] text-[#8f1d20] text-[11px] font-bold hover:bg-[#8f1d20] hover:text-white transition-all shadow-2xs cursor-pointer"
+                        className="px-3 py-1 rounded-full bg-white border border-[var(--brand-accent)] text-[var(--brand-primary)] text-[11px] font-bold hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-2xs cursor-pointer"
                       >
                         {btn.label}
                       </button>
@@ -461,39 +472,39 @@ export default function AIChatWidget({
                   </div>
                 )}
 
-                <span className="text-[9px] text-[#a3948e] mt-1 px-1">
+                <span className="text-[9px] text-[var(--brand-muted-2)] mt-1 px-1">
                   {msg.timestamp}
                 </span>
               </div>
             ))}
 
             {isTyping && (
-              <div className="flex items-center gap-1.5 p-3 rounded-2xl bg-white border border-[#eadfca] text-xs text-[#74635c] w-24">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#8f1d20] animate-bounce"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#8f1d20] animate-bounce delay-100"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#8f1d20] animate-bounce delay-200"></span>
+              <div className="flex items-center gap-1.5 p-3 rounded-2xl bg-white border border-[var(--brand-border)] text-xs text-[var(--brand-muted)] w-24">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] animate-bounce"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] animate-bounce delay-100"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] animate-bounce delay-200"></span>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Quick Suggestion Chips */}
-          <div className="px-3 py-2 bg-white border-t border-[#f1e6d4] flex gap-1.5 overflow-x-auto scrollbar-none">
+          <div className="px-3 py-2 bg-white border-t border-[var(--brand-border-soft)] flex gap-1.5 overflow-x-auto scrollbar-none">
             <button
               onClick={() => handleSendMessage("Berapa harga Rendang dan Ayam Pop?")}
-              className="px-2.5 py-1 rounded-lg bg-[#fffaf0] border border-[#eadfca] text-[10px] font-medium text-[#74635c] hover:text-[#8f1d20] whitespace-nowrap cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-[var(--brand-bg)] border border-[var(--brand-border)] text-[10px] font-medium text-[var(--brand-muted)] hover:text-[var(--brand-primary)] whitespace-nowrap cursor-pointer"
             >
               🥘 Harga Rendang
             </button>
             <button
               onClick={() => handleSendMessage("Ada meja untuk 4 orang besok jam 19.00?")}
-              className="px-2.5 py-1 rounded-lg bg-[#fffaf0] border border-[#eadfca] text-[10px] font-medium text-[#74635c] hover:text-[#8f1d20] whitespace-nowrap cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-[var(--brand-bg)] border border-[var(--brand-border)] text-[10px] font-medium text-[var(--brand-muted)] hover:text-[var(--brand-primary)] whitespace-nowrap cursor-pointer"
             >
               🪑 Meja 4 Org Besok
             </button>
             <button
               onClick={() => handleSendMessage("Bagaimana cara pembayaran deposit Midtrans?")}
-              className="px-2.5 py-1 rounded-lg bg-[#fffaf0] border border-[#eadfca] text-[10px] font-medium text-[#74635c] hover:text-[#8f1d20] whitespace-nowrap cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-[var(--brand-bg)] border border-[var(--brand-border)] text-[10px] font-medium text-[var(--brand-muted)] hover:text-[var(--brand-primary)] whitespace-nowrap cursor-pointer"
             >
               💳 Cara Bayar DP
             </button>
@@ -505,7 +516,7 @@ export default function AIChatWidget({
               e.preventDefault();
               handleSendMessage();
             }}
-            className="p-3 bg-white border-t border-[#eadfca] flex gap-2"
+            className="p-3 bg-white border-t border-[var(--brand-border)] flex gap-2"
           >
             <input
               ref={inputRef}
@@ -514,12 +525,12 @@ export default function AIChatWidget({
               placeholder="Tanyakan menu, booking meja, dll..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-[#d8cbbb] focus:outline-none focus:ring-2 focus:ring-[#d8a43b]"
+              className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-[var(--brand-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-accent)]"
             />
             <button
               type="submit"
               disabled={!inputValue.trim() || isTyping}
-              className="px-4 py-2 rounded-xl bg-[#8f1d20] text-white text-xs font-bold hover:bg-[#731518] transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+              className="px-4 py-2 rounded-xl bg-[var(--brand-primary)] text-white text-xs font-bold hover:bg-[var(--brand-primary-hover)] transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
             >
               Kirim
             </button>
@@ -530,17 +541,17 @@ export default function AIChatWidget({
       {/* Floating Launcher Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="group flex items-center gap-3 px-4 py-3 rounded-full bg-gradient-to-r from-[#8f1d20] to-[#6a1215] text-white shadow-xl shadow-[#8f1d20]/30 hover:scale-105 transition-all cursor-pointer border border-[#d8a43b]/40 ring-4 ring-[#8f1d20]/10"
+        className="group flex items-center gap-3 px-4 py-3 rounded-full bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-primary-dark)] text-white shadow-xl shadow-[var(--brand-primary)]/30 hover:scale-105 transition-all cursor-pointer border border-[var(--brand-accent)]/40 ring-4 ring-[var(--brand-primary)]/10"
         aria-label="Buka Chat AI Assistant"
       >
         <div className="relative">
-          <div className="w-7 h-7 rounded-full bg-[#d8a43b] text-[#261b17] flex items-center justify-center font-bold text-xs">
+          <div className="w-7 h-7 rounded-full bg-[var(--brand-accent)] text-[var(--brand-ink)] flex items-center justify-center font-bold text-xs">
             AI
           </div>
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#8f1d20] animate-ping"></span>
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[var(--brand-primary)] animate-ping"></span>
         </div>
         <span className="font-bold text-xs pr-1">
-          {isOpen ? "Tutup Asisten" : "Tanya AI Raso Minang ⚡"}
+          {isOpen ? "Tutup Asisten" : "Tanya AI ⚡"}
         </span>
       </button>
     </div>

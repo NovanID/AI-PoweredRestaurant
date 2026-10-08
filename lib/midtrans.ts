@@ -122,7 +122,7 @@ export async function createSnapTransaction(
       ? {
           first_name: params.customerDetails.firstName,
           last_name: params.customerDetails.lastName,
-          email: params.customerDetails.email || 'customer@rasominang.com',
+          email: params.customerDetails.email || 'pelanggan@example.com',
           phone: params.customerDetails.phone,
         }
       : undefined,

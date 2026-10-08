@@ -18,6 +18,7 @@ import { randomUUID } from 'crypto';
 import { RedisLeaseManager } from '../infrastructure/redis-lease-manager';
 import { getExpectedPaymentAmount, isExpectedPaymentAmount } from '../midtrans';
 import { DEFAULT_TENANT_ID } from '../mock-data';
+import { getTenantCodePrefix } from '../tenants';
 
 const TO_DOMAIN_CATEGORY: Record<PrismaMenuCategory, MenuCategory> = {
   [PrismaMenuCategory.LAUK_UTAMA]: 'Lauk Utama',
@@ -96,6 +97,27 @@ export class PrismaRestaurantRepository {
 
     const items = await prisma.menuItem.findMany({
       where,
+      orderBy: [{ isPopular: 'desc' }, { name: 'asc' }],
+    });
+
+    return items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: TO_DOMAIN_CATEGORY[item.category] || 'Lauk Utama',
+      price: Number(item.price),
+      description: item.description || '',
+      isAvailable: item.isAvailable,
+      isPopular: item.isPopular,
+      spicinessLevel: (item.spicinessLevel as 1 | 2 | 3) || 1,
+      tenantId: item.tenantId,
+    }));
+  }
+
+  /**
+   * 2b. Get Menu Items for ALL tenants (used to build the shared search index)
+   */
+  public static async getMenuItemsForAllTenants(): Promise<MenuItem[]> {
+    const items = await prisma.menuItem.findMany({
       orderBy: [{ isPopular: 'desc' }, { name: 'asc' }],
     });
 
@@ -228,7 +250,13 @@ export class PrismaRestaurantRepository {
   }
 
   /**
-   * 5. Create Confirmed Reservation in PostgreSQL
+   * 5. Create Confirmed Reservation in PostgreSQL (atomic).
+   * Inside one transaction:
+   *  - validates the table belongs to the SAME tenant
+   *  - re-checks slot conflicts (double-booking guard, row-locked)
+   *  - inserts the reservation
+   * Throws on any validation failure or conflict — callers must treat that as
+   * a failed booking (never silently succeed).
    */
   public static async createReservation(data: {
     tenantId: TenantId;
@@ -246,25 +274,65 @@ export class PrismaRestaurantRepository {
     paymentAmount?: number;
     snapToken?: string;
   }): Promise<Reservation> {
-    const created = await prisma.reservation.create({
-      data: {
-        tenantId: data.tenantId,
-        code: data.code,
-        customerName: data.customerName,
-        customerPhone: data.customerPhone,
-        tableId: data.tableId,
-        tableNumber: data.tableNumber,
-        tableArea: data.tableArea,
-        reservationDate: data.date,
-        reservationTime: data.time,
-        guestCount: data.guestCount,
-        status: 'confirmed',
-        autoConfirmed: true,
-        notes: data.notes,
-        paymentStatus: data.paymentStatus || 'unpaid',
-        paymentAmount: data.paymentAmount ? Number(data.paymentAmount) : null,
-        snapToken: data.snapToken,
-      },
+    const created = await prisma.$transaction(async (tx) => {
+      // Tenant isolation: the table MUST belong to the same tenant
+      const table = await tx.table.findFirst({
+        where: { id: data.tableId, tenantId: data.tenantId },
+      });
+      if (!table) {
+        throw new Error(
+          `Meja tidak valid untuk tenant ini (tableId=${data.tableId}). Reservasi ditolak demi isolasi data.`
+        );
+      }
+
+      // Double-booking guard: lock rows for this table/date and check overlap
+      const conflicts = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM reservations
+        WHERE table_id = ${data.tableId}
+          AND tenant_id = ${data.tenantId}
+          AND reservation_date = ${data.date}
+          AND status IN ('confirmed', 'seated', 'pending')
+        FOR UPDATE
+      `;
+      const toMinutes = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + (m || 0);
+      };
+      const newMin = toMinutes(data.time);
+      if (conflicts.length > 0) {
+        const overlapping = await tx.reservation.findMany({
+          where: { id: { in: conflicts.map((c) => c.id) } },
+          select: { reservationTime: true, code: true },
+        });
+        const clash = overlapping.find((r) => Math.abs(toMinutes(r.reservationTime) - newMin) < 90);
+        if (clash) {
+          throw new Error(
+            `Meja ${data.tableNumber} sudah terbooking pada slot berdekatan (tiket ${clash.code}). Pilih jam atau meja lain.`
+          );
+        }
+      }
+
+      return tx.reservation.create({
+        data: {
+          tenantId: data.tenantId,
+          code: data.code,
+          customerName: data.customerName,
+          customerPhone: data.customerPhone,
+          tableId: table.id,
+          tableNumber: table.tableNumber,
+          tableArea: table.area,
+          reservationDate: data.date,
+          reservationTime: data.time,
+          guestCount: data.guestCount,
+          status: 'confirmed',
+          autoConfirmed: true,
+          qrToken: `QR-${data.code}-VERIFIED`,
+          notes: data.notes,
+          paymentStatus: data.paymentStatus || 'unpaid',
+          paymentAmount: data.paymentAmount ? Number(data.paymentAmount) : null,
+          snapToken: data.snapToken,
+        },
+      });
     });
 
     // Record customer visit count in background
@@ -509,6 +577,91 @@ export class PrismaRestaurantRepository {
   }
 
   /**
+   * 8b. Reschedule Reservation atomically:
+   * validates the target slot against DB reservations + Redis holds,
+   * re-assigns a free table if needed, all inside one transaction.
+   */
+  public static async rescheduleReservation(
+    tenantId: TenantId,
+    code: string,
+    data: { newDate: string; newTime: string; newGuestCount?: number; actor?: string }
+  ): Promise<{ success: boolean; message: string; reservation?: Reservation }> {
+    const clean = code.trim().toUpperCase();
+    const target = await prisma.reservation.findFirst({ where: { tenantId, code: clean } });
+    if (!target) {
+      return { success: false, message: `Reservasi dengan kode "${code}" tidak ditemukan.` };
+    }
+    if (['cancelled', 'completed', 'rejected', 'no_show', 'expired'].includes(target.status)) {
+      return {
+        success: false,
+        message: `Reservasi ${code} dengan status "${target.status}" tidak dapat dijadwalkan ulang.`,
+      };
+    }
+
+    const newGuests = data.newGuestCount || target.guestCount;
+
+    // Business rule: operating hours
+    const profile = await this.getProfile(tenantId);
+    if (profile) {
+      const [h, m] = data.newTime.split(':').map(Number);
+      const reqMin = h * 60 + (m || 0);
+      const [oH, oM] = profile.openTime.split(':').map(Number);
+      const [cH, cM] = profile.closeTime.split(':').map(Number);
+      if (reqMin < oH * 60 + oM || reqMin + 60 > cH * 60 + cM) {
+        return {
+          success: false,
+          message: `${profile.name} hanya melayani reservasi antara ${profile.openTime} – ${profile.closeTime} WIB.`,
+        };
+      }
+    }
+
+    // Server-side availability for the NEW slot
+    const avail = await this.checkAvailability({
+      tenantId,
+      date: data.newDate,
+      time: data.newTime,
+      guestCount: newGuests,
+      preferredArea: target.tableArea,
+    });
+    if (!avail.available || avail.availableTables.length === 0) {
+      return {
+        success: false,
+        message: `Jadwal baru (${data.newDate} jam ${data.newTime}) tidak tersedia. ${avail.reason || ''}`.trim(),
+      };
+    }
+
+    const selectedTable = [...avail.availableTables].sort((a, b) => a.capacity - b.capacity)[0];
+
+    const updated = await prisma.reservation.update({
+      where: { id: target.id },
+      data: {
+        reservationDate: data.newDate,
+        reservationTime: data.newTime,
+        guestCount: newGuests,
+        tableId: selectedTable.id,
+        tableNumber: selectedTable.number,
+        tableArea: selectedTable.area,
+        status: 'confirmed',
+        autoConfirmed: true,
+      },
+    });
+
+    await this.recordAudit({
+      tenantId,
+      actor: data.actor || 'Sistem Reservasi',
+      action: 'AUTO_RESCHEDULE_RESERVATION',
+      entity: `Tiket ${clean}`,
+      details: `Jadwal dipindah ke ${data.newDate} ${data.newTime} WIB (${newGuests} tamu) — Meja ${selectedTable.number} (${selectedTable.area}).`,
+    });
+
+    return {
+      success: true,
+      message: `Jadwal reservasi ${clean} berhasil diperbarui ke tanggal ${data.newDate} pukul ${data.newTime} WIB, Meja ${selectedTable.number}.`,
+      reservation: this.mapPrismaReservation(updated),
+    };
+  }
+
+  /**
    * Helper: Map Prisma Reservation model to Domain Reservation
    */
   public static mapPrismaReservation(res: any): Reservation {
@@ -746,7 +899,7 @@ export class PrismaRestaurantRepository {
     const dateStr = data.date || now.toISOString().split('T')[0];
     const timeStr = data.time || now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
     const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const prefix = tenantId === 'kopi-nusantara-cafe-02' ? 'KN' : 'RM';
+    const prefix = getTenantCodePrefix(tenantId);
     const code = data.code || (isSeatedNow ? `WI-${randomChars}` : `${prefix}-M${randomChars}`);
 
     const txOps: any[] = [];

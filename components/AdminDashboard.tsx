@@ -33,7 +33,7 @@ export default function AdminDashboard() {
     tenantId,
     setTenantId,
     availableTenants,
-  } = useRestaurant();
+  } = useRestaurant({ mode: "admin" });
 
   const [activeTab, setActiveTab] = useState<AdminTab>("reservations");
   const [reservationFilter, setReservationFilter] = useState<ReservationStatus | "all">("all");
@@ -78,19 +78,20 @@ export default function AdminDashboard() {
     setTimeout(() => setFeedbackMsg(""), 4000);
   };
 
-  const handleWalkIn = (tableId: string) => {
-    const res = createWalkInSeated(tableId, undefined, selectedStaff);
+  const handleWalkIn = async (tableId: string) => {
+    const res = await createWalkInSeated(tableId, undefined, selectedStaff);
     if (res.success) showFeedback(res.message);
+    else showFeedback(res.message || "Gagal mendudukkan tamu walk-in.");
   };
 
-  const handleManualOfflineSubmit = (e: React.FormEvent) => {
+  const handleManualOfflineSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualTableId) {
       showFeedback("Mohon pilih meja yang ingin digunakan.");
       return;
     }
 
-    const res = createManualOfflineBooking({
+    const res = await createManualOfflineBooking({
       customerName: manualCustomerName,
       customerPhone: manualCustomerPhone,
       tableId: manualTableId,
@@ -108,6 +109,8 @@ export default function AdminDashboard() {
       setManualGuestCount(2);
       setManualNotes("");
       setManualTableId("");
+    } else {
+      showFeedback(res.message || "Gagal menyimpan booking manual.");
     }
   };
 
@@ -137,7 +140,7 @@ export default function AdminDashboard() {
     }, 0);
   };
 
-  const handleSaveOrderToTable = () => {
+  const handleSaveOrderToTable = async () => {
     if (!selectedTableForPos) {
       showFeedback("Pilih meja terlebih dahulu.");
       return;
@@ -162,13 +165,15 @@ export default function AdminDashboard() {
       };
     });
 
-    const res = addOrderItemsToReservation(activeSeated.code, orderItems, selectedStaff);
+    const res = await addOrderItemsToReservation(activeSeated.code, orderItems, selectedStaff);
     if (res.success) {
       showFeedback(res.message);
+    } else {
+      showFeedback(res.message || "Gagal menyimpan pesanan meja.");
     }
   };
 
-  const handleSettlePayment = (method: string) => {
+  const handleSettlePayment = async (method: string) => {
     if (!selectedTableForPos) {
       showFeedback("Pilih meja terlebih dahulu.");
       return;
@@ -195,11 +200,11 @@ export default function AdminDashboard() {
     });
 
     if (orderItems.length > 0) {
-      addOrderItemsToReservation(activeSeated.code, orderItems, selectedStaff);
+      await addOrderItemsToReservation(activeSeated.code, orderItems, selectedStaff);
     }
 
     const total = calculateCartTotal() || activeSeated.orderTotal || activeSeated.paymentAmount || 50000;
-    const res = settleOfflinePayment(activeSeated.code, method, selectedStaff);
+    const res = await settleOfflinePayment(activeSeated.code, method, selectedStaff);
     if (res.success) {
       showFeedback(res.message);
       // Open receipt modal
@@ -217,7 +222,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSettleAndComplete = (method: string) => {
+  const handleSettleAndComplete = async (method: string) => {
     if (!selectedTableForPos) {
       showFeedback("Pilih meja terlebih dahulu.");
       return;
@@ -230,38 +235,43 @@ export default function AdminDashboard() {
       return;
     }
     const targetCode = activeSeated.code;
-    handleSettlePayment(method);
-    handleCompleteDining(targetCode);
+    await handleSettlePayment(method);
+    await handleCompleteDining(targetCode);
     setSelectedTableForPos("");
   };
 
-  const handleCheckinSeated = (code: string) => {
-    const res = markAsSeated(code, selectedStaff);
+  const handleCheckinSeated = async (code: string) => {
+    const res = await markAsSeated(code, selectedStaff);
     if (res.success) showFeedback(res.message);
+    else showFeedback(res.message || "Gagal menandai tamu seated.");
   };
 
-  const handleCompleteDining = (code: string) => {
-    const res = markAsCompleted(code, selectedStaff);
+  const handleCompleteDining = async (code: string) => {
+    const res = await markAsCompleted(code, selectedStaff);
     if (res.success) showFeedback(res.message);
+    else showFeedback(res.message || "Gagal menandai selesai bersantap.");
   };
 
-  const handleMarkNoShow = (code: string) => {
-    const res = markAsNoShow(code, selectedStaff, "Tamu tidak hadir melewati batas toleransi");
+  const handleMarkNoShow = async (code: string) => {
+    const res = await markAsNoShow(code, selectedStaff, "Tamu tidak hadir melewati batas toleransi");
     if (res.success) showFeedback(res.message);
+    else showFeedback(res.message || "Gagal menandai no-show.");
   };
 
-  const handleCancel = (code: string) => {
-    const res = updateReservationStatus(code, "cancelled", selectedStaff, "Dibatalkan oleh staf restoran");
+  const handleCancel = async (code: string) => {
+    const res = await updateReservationStatus(code, "cancelled", selectedStaff, "Dibatalkan oleh staf restoran");
     if (res.success) showFeedback(res.message);
+    else showFeedback(res.message || "Gagal membatalkan reservasi.");
   };
 
-  const handleConfirmManual = (code: string) => {
-    const res = updateReservationStatus(code, "confirmed", selectedStaff);
+  const handleConfirmManual = async (code: string) => {
+    const res = await updateReservationStatus(code, "confirmed", selectedStaff);
     if (res.success) showFeedback(res.message);
+    else showFeedback(res.message || "Gagal mengonfirmasi reservasi.");
   };
 
-  const handleReject = (code: string) => {
-    const res = updateReservationStatus(
+  const handleReject = async (code: string) => {
+    const res = await updateReservationStatus(
       code,
       "rejected",
       selectedStaff,
@@ -271,6 +281,8 @@ export default function AdminDashboard() {
       showFeedback(res.message);
       setRejectingCode(null);
       setRejectReason("");
+    } else {
+      showFeedback(res.message || "Gagal menolak reservasi.");
     }
   };
 
@@ -340,10 +352,15 @@ export default function AdminDashboard() {
                   value={tenantId}
                   onChange={(e) => {
                     const newId = e.target.value;
-                    setTenantId(newId);
                     setSelectedTableForPos("");
                     setPosCart({});
-                    showFeedback(`Beralih ke tenant: ${availableTenants.find((t) => t.id === newId)?.name || newId}`);
+                    setTenantId(newId)
+                      .then(() => {
+                        showFeedback(`Beralih ke tenant: ${availableTenants.find((t) => t.id === newId)?.name || newId}`);
+                      })
+                      .catch(() => {
+                        showFeedback("Gagal beralih tenant. Sesi admin mungkin sudah habis — silakan login ulang.");
+                      });
                   }}
                   className="bg-[#3d2c26] text-amber-200 text-xs font-semibold px-2 py-0.5 rounded-md border border-amber-500/30 focus:outline-none focus:border-amber-400 cursor-pointer"
                   title="Pilih Tenant Restoran (Multi-Tenant SaaS)"
@@ -390,14 +407,23 @@ export default function AdminDashboard() {
 
             <button
               onClick={() => {
-                if (confirm("Reset seluruh data ke kondisi awal seed data?")) {
-                  resetToDefaults();
-                  showFeedback("Data berhasil di-reset ke kondisi awal.");
-                }
+                resetToDefaults();
+                showFeedback("Data disinkronkan ulang dari PostgreSQL.");
               }}
               className="px-2.5 py-1.5 rounded-lg border border-white/15 text-white/70 hover:text-white hover:border-white/40 transition-colors text-[11px] cursor-pointer"
             >
-              Reset Demo
+              Refresh Data
+            </button>
+
+            <button
+              onClick={async () => {
+                await fetch("/api/admin/logout", { method: "POST" });
+                window.location.href = "/admin/login";
+              }}
+              className="px-2.5 py-1.5 rounded-lg border border-rose-500/30 text-rose-300 hover:bg-rose-950/40 transition-colors text-[11px] cursor-pointer"
+              title="Keluar dari sesi admin"
+            >
+              Logout
             </button>
           </div>
         </div>
@@ -916,10 +942,11 @@ export default function AdminDashboard() {
                         <button
                           onClick={() => {
                             if (activeSeated) {
-                              handleCompleteDining(activeSeated.code);
+                              void handleCompleteDining(activeSeated.code);
                             } else {
-                              updateTableStatus(tbl.id, "available", selectedStaff);
-                              showFeedback(`Meja ${tbl.number} ditandai Kosong & Tersedia`);
+                              void updateTableStatus(tbl.id, "available", selectedStaff).then((res) => {
+                                showFeedback(res.success ? `Meja ${tbl.number} ditandai Kosong & Tersedia` : res.message || "Gagal memperbarui status meja.");
+                              });
                             }
                           }}
                           className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] cursor-pointer"
@@ -931,8 +958,9 @@ export default function AdminDashboard() {
                       <button
                         onClick={() => {
                           const nextStatus = isMaintenance ? "available" : "maintenance";
-                          updateTableStatus(tbl.id, nextStatus as TableStatus, selectedStaff);
-                          showFeedback(`Status Meja ${tbl.number} diperbarui.`);
+                          void updateTableStatus(tbl.id, nextStatus as TableStatus, selectedStaff).then((res) => {
+                            showFeedback(res.success ? `Status Meja ${tbl.number} diperbarui.` : res.message || "Gagal memperbarui status meja.");
+                          });
                         }}
                         className="py-1.5 px-2 rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-100 text-[10px] cursor-pointer"
                       >
@@ -1407,14 +1435,17 @@ export default function AdminDashboard() {
                       <td className="p-3.5 text-right">
                         <button
                           onClick={() => {
-                            const res = toggleMenuAvailability(item.id, selectedStaff);
-                            if (res.success && res.item) {
-                              showFeedback(
-                                `Menu ${res.item.name} diubah menjadi ${
-                                  res.item.isAvailable ? "Tersedia" : "Habis"
-                                }`
-                              );
-                            }
+                            void toggleMenuAvailability(item.id, selectedStaff).then((res) => {
+                              if (res.success && res.menuItem) {
+                                showFeedback(
+                                  `Menu ${res.menuItem.name} diubah menjadi ${
+                                    res.menuItem.isAvailable ? "Tersedia" : "Habis"
+                                  }`
+                                );
+                              } else {
+                                showFeedback(res.message || "Gagal memperbarui ketersediaan menu.");
+                              }
+                            });
                           }}
                           className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             item.isAvailable

@@ -4,6 +4,7 @@ import { AIOrchestrator } from '../../../lib/ai/orchestrator';
 import { StreamingAIOrchestrator } from '../../../lib/ai/streaming-orchestrator';
 import { ConversationSession } from '../../../lib/ai/types';
 import { DEFAULT_TENANT_ID } from '../../../lib/mock-data';
+import { TENANT_BRANDING } from '../../../lib/tenants';
 
 const ChatRequestBodySchema = z.object({
   message: z.string().trim().min(1, 'Pesan chat wajib diisi dan tidak boleh kosong.'),
@@ -41,6 +42,15 @@ export async function POST(req: NextRequest) {
       history: [],
       lastInteractionAt: Date.now(),
     };
+
+    // Tenant guard: only registered tenants may drive the AI flow.
+    // Unknown/foreign tenantIds are rejected instead of silently defaulting.
+    if (!TENANT_BRANDING[currentSession.tenantId]) {
+      return NextResponse.json(
+        { error: `Tenant "${currentSession.tenantId}" tidak dikenal oleh sistem chat.` },
+        { status: 400 }
+      );
+    }
 
     // If client explicitly requests non-streaming JSON (e.g. automated test scripts)
     if (stream === false) {

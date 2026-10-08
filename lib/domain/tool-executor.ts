@@ -2,7 +2,6 @@ import { TenantId } from './types';
 import { ToolResult } from '../ai/types';
 import { ToolRegistry } from '../ai/tool-registry';
 import { ReservationService } from './reservation-service';
-import { restaurantStore } from '../restaurant-store';
 import { IdempotencyManager } from '../infrastructure/idempotency';
 import { DomainEventBus } from '../infrastructure/event-bus';
 import { ObservabilityManager } from '../infrastructure/observability';
@@ -42,13 +41,18 @@ export class ToolExecutor {
       // 2. Dispatch to specific domain service
       switch (toolName) {
         case 'get_restaurant_info': {
-          let profile: any = null;
-          try {
-            profile = await PrismaRestaurantRepository.getProfile(tenantId);
-          } catch (dbErr) {
-            console.warn('[ToolExecutor] Prisma getProfile fallback to store:', dbErr);
+          // PostgreSQL only — a DB failure must surface as a tool failure,
+          // never as another tenant's (or mock) profile.
+          const profile = await PrismaRestaurantRepository.getProfile(tenantId);
+          if (!profile) {
+            return {
+              tool: toolName,
+              success: false,
+              data: null,
+              message: `Data restoran untuk tenant "${tenantId}" tidak ditemukan.`,
+              errorCode: 'TENANT_NOT_FOUND',
+            };
           }
-          if (!profile) profile = restaurantStore.getProfile();
 
           return {
             tool: toolName,
@@ -63,6 +67,7 @@ export class ToolExecutor {
           let items: any[] = [];
 
           // 1. If search term is provided, use Orama fuzzy typo-tolerant search
+          //    (index is loaded from PostgreSQL per tenant)
           if (search && typeof search === 'string' && search.trim().length > 0) {
             try {
               items = await OramaMenuIndex.searchMenu(search, {
@@ -72,46 +77,36 @@ export class ToolExecutor {
                 spicinessLevel: spicinessLevel ? Number(spicinessLevel) : undefined,
               });
             } catch (oramaErr) {
-              console.warn('[ToolExecutor] Orama search fallback:', oramaErr);
+              console.warn('[ToolExecutor] Orama search error, falling back to SQL:', oramaErr);
             }
           }
 
-          // 2. If no search term or Orama produced 0 hits, query Prisma
+          // 2. If no search term or Orama produced 0 hits, query PostgreSQL.
+          //    Multi-word searches retry per word (SQL ILIKE contains).
           if (items.length === 0) {
-            try {
-              items = await PrismaRestaurantRepository.getMenuItems({
-                tenantId,
-                category,
-                search,
-                maxPrice: maxPrice ? Number(maxPrice) : undefined,
-                spicinessLevel: spicinessLevel ? Number(spicinessLevel) : undefined,
-              });
-            } catch (dbErr) {
-              console.warn('[ToolExecutor] Prisma getMenuItems fallback to store:', dbErr);
-            }
-          }
+            items = await PrismaRestaurantRepository.getMenuItems({
+              tenantId,
+              category,
+              search,
+              maxPrice: maxPrice ? Number(maxPrice) : undefined,
+              spicinessLevel: spicinessLevel ? Number(spicinessLevel) : undefined,
+            });
 
-          // 3. Fallback to restaurantStore
-          if (items.length === 0) {
-            items = restaurantStore.getMenuItems(category || 'Semua', search);
-
-            // If no exact match and search has multiple words, try first word fallback
             if (items.length === 0 && search && typeof search === 'string') {
               const words = search.split(/\s+/).filter((w: string) => w.length > 2);
               for (const word of words) {
-                const fallbackItems = restaurantStore.getMenuItems(category || 'Semua', word);
-                if (fallbackItems.length > 0) {
-                  items = fallbackItems;
+                const perWord = await PrismaRestaurantRepository.getMenuItems({
+                  tenantId,
+                  category,
+                  search: word,
+                  maxPrice: maxPrice ? Number(maxPrice) : undefined,
+                  spicinessLevel: spicinessLevel ? Number(spicinessLevel) : undefined,
+                });
+                if (perWord.length > 0) {
+                  items = perWord;
                   break;
                 }
               }
-            }
-
-            if (maxPrice) {
-              items = items.filter((m) => m.price <= Number(maxPrice));
-            }
-            if (spicinessLevel) {
-              items = items.filter((m) => m.spicinessLevel === Number(spicinessLevel));
             }
           }
 
@@ -124,28 +119,14 @@ export class ToolExecutor {
         }
 
         case 'check_availability': {
-          let result: any = null;
-          try {
-            result = await PrismaRestaurantRepository.checkAvailability({
-              tenantId,
-              date: args.date,
-              time: args.time,
-              guestCount: args.guestCount,
-              preferredArea: args.preferredArea,
-            });
-          } catch (dbErr) {
-            console.warn('[ToolExecutor] Prisma checkAvailability fallback to service:', dbErr);
-          }
-
-          if (!result) {
-            result = await ReservationService.checkAvailability({
-              tenantId,
-              date: args.date,
-              time: args.time,
-              guestCount: args.guestCount,
-              preferredArea: args.preferredArea,
-            });
-          }
+          // ReservationService already goes straight to PostgreSQL + Redis holds.
+          const result = await ReservationService.checkAvailability({
+            tenantId,
+            date: args.date,
+            time: args.time,
+            guestCount: args.guestCount,
+            preferredArea: args.preferredArea,
+          });
 
           return {
             tool: toolName,
@@ -191,6 +172,8 @@ export class ToolExecutor {
             };
           }
 
+          // commitLeasedReservation persists to PostgreSQL itself and returns
+          // success:false when the DB write fails — no separate write here.
           const commitResult = await ReservationService.commitLeasedReservation({
             leaseToken: args.leaseToken,
             customerName: args.customerName || 'Pelanggan',
@@ -201,29 +184,6 @@ export class ToolExecutor {
 
           if (commitResult.success && commitResult.reservation) {
             IdempotencyManager.commit(idempotencyKey, commitResult.reservation);
-
-            // Persist into PostgreSQL via Prisma
-            try {
-              const res = commitResult.reservation;
-              await PrismaRestaurantRepository.createReservation({
-                tenantId,
-                code: res.code,
-                customerName: res.customerName,
-                customerPhone: res.customerPhone,
-                tableId: res.tableId,
-                tableNumber: res.tableNumber,
-                tableArea: res.tableArea,
-                date: res.date,
-                time: res.time,
-                guestCount: res.guestCount,
-                notes: res.notes,
-                paymentStatus: res.paymentStatus,
-                paymentAmount: res.paymentAmount,
-                snapToken: res.snapToken,
-              });
-            } catch (dbErr) {
-              console.warn('[ToolExecutor] Prisma createReservation error:', dbErr);
-            }
 
             // Publish domain event
             DomainEventBus.publish({
@@ -245,16 +205,8 @@ export class ToolExecutor {
         }
 
         case 'get_reservation': {
-          let res: any = null;
-          try {
-            res = await PrismaRestaurantRepository.getReservationByCode(tenantId, args.code);
-          } catch (dbErr) {
-            console.warn('[ToolExecutor] Prisma getReservation fallback to service:', dbErr);
-          }
-
-          if (!res) {
-            res = ReservationService.getReservation(args.code);
-          }
+          // Tenant-scoped PostgreSQL lookup only
+          const res = await PrismaRestaurantRepository.getReservationByCode(tenantId, args.code);
 
           if (!res) {
             return {
@@ -273,13 +225,7 @@ export class ToolExecutor {
         }
 
         case 'cancel_reservation': {
-          try {
-            await PrismaRestaurantRepository.cancelReservation(tenantId, args.code, args.reason);
-          } catch (dbErr) {
-            console.warn('[ToolExecutor] Prisma cancelReservation error:', dbErr);
-          }
-
-          const cancelResult = ReservationService.cancelReservation(args.code);
+          const cancelResult = await ReservationService.cancelReservation(tenantId, args.code, args.reason);
           if (cancelResult.success) {
             DomainEventBus.publish({
               eventType: 'reservation.cancelled',
@@ -297,17 +243,7 @@ export class ToolExecutor {
         }
 
         case 'update_reservation': {
-          try {
-            await PrismaRestaurantRepository.updateReservation(tenantId, args.code, {
-              newDate: args.newDate,
-              newTime: args.newTime,
-              newGuestCount: args.newGuestCount,
-            });
-          } catch (dbErr) {
-            console.warn('[ToolExecutor] Prisma updateReservation error:', dbErr);
-          }
-
-          const updateResult = ReservationService.updateReservation(args.code, {
+          const updateResult = await ReservationService.updateReservation(tenantId, args.code, {
             date: args.newDate,
             time: args.newTime,
             guestCount: args.newGuestCount,

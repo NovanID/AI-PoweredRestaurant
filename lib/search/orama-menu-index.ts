@@ -1,6 +1,5 @@
 import { create, insert, search, type AnyOrama } from '@orama/orama';
 import { MenuItem, TenantId } from '../domain/types';
-import { restaurantStore } from '../restaurant-store';
 import { PrismaRestaurantRepository } from '../db/prisma-repository';
 import { DEFAULT_TENANT_ID } from '../mock-data';
 
@@ -24,16 +23,43 @@ const menuSchema = {
   tenantId: 'string',
 } as const;
 
+/**
+ * Orama fuzzy-search index built ENTIRELY from PostgreSQL (all tenants).
+ * The in-memory mock store is no longer a data source.
+ * Results are always filtered by tenantId so tenants never see each other's menu.
+ */
 export class OramaMenuIndex {
   private static db: AnyOrama | null = null;
-  private static isInitializing = false;
   private static initPromise: Promise<void> | null = null;
+  private static lastBuildAt = 0;
+  private static readonly REFRESH_MS = 60_000; // rebuild at most once per minute
+
+  private static async build(): Promise<AnyOrama> {
+    const db = await create({ schema: menuSchema });
+    // Load every tenant's menu straight from PostgreSQL
+    const items = (await PrismaRestaurantRepository.getMenuItemsForAllTenants()) as MenuItem[];
+    for (const item of items) {
+      await insert(db, {
+        id: String(item.id),
+        name: String(item.name),
+        category: String(item.category),
+        price: Number(item.price),
+        description: String(item.description || ''),
+        isAvailable: Boolean(item.isAvailable),
+        spicinessLevel: Number(item.spicinessLevel || 0),
+        tenantId: String(item.tenantId || DEFAULT_TENANT_ID),
+      });
+    }
+    this.lastBuildAt = Date.now();
+    console.log(`[OramaMenuIndex] Built from PostgreSQL with ${items.length} menu items.`);
+    return db;
+  }
 
   /**
-   * Initialize or retrieve existing Orama index instance
+   * Initialize or retrieve existing Orama index instance (with TTL refresh).
    */
   public static async getInstance(): Promise<AnyOrama> {
-    if (this.db) {
+    if (this.db && Date.now() - this.lastBuildAt < this.REFRESH_MS) {
       return this.db;
     }
 
@@ -43,48 +69,18 @@ export class OramaMenuIndex {
     }
 
     this.initPromise = (async () => {
-      this.isInitializing = true;
       try {
-        const db = await create({
-          schema: menuSchema,
-        });
-
-        // 1. Fetch menu items from Prisma or fallback to in-memory store
-        let items: MenuItem[] = [];
-        try {
-          items = (await PrismaRestaurantRepository.getMenuItems()) as MenuItem[];
-        } catch (dbErr) {
-          console.warn('[OramaMenuIndex] Prisma load fallback to store:', dbErr);
-        }
-
-        if (!items || items.length === 0) {
-          items = restaurantStore.getMenuItems() as MenuItem[];
-        }
-
-        // 2. Insert items into Orama index
-        for (const item of items) {
-          await insert(db, {
-            id: String(item.id),
-            name: String(item.name),
-            category: String(item.category),
-            price: Number(item.price),
-            description: String(item.description || ''),
-            isAvailable: Boolean(item.isAvailable),
-            spicinessLevel: Number(item.spicinessLevel || 0),
-            tenantId: String(item.tenantId || DEFAULT_TENANT_ID),
-          });
-        }
-
-        this.db = db;
-        console.log(`[OramaMenuIndex] Initialized with ${items.length} menu items.`);
+        this.db = await this.build();
       } finally {
-        this.isInitializing = false;
         this.initPromise = null;
       }
     })();
 
     await this.initPromise;
-    return this.db!;
+    if (!this.db) {
+      throw new Error('Orama index gagal dibangun dari database.');
+    }
+    return this.db;
   }
 
   /**
@@ -97,19 +93,14 @@ export class OramaMenuIndex {
     const db = await this.getInstance();
     const cleanQuery = query?.trim();
 
-    // If no search query, return filtered items from store/Prisma directly
+    // If no search query, return filtered items straight from PostgreSQL
     if (!cleanQuery) {
-      let allItems: MenuItem[] = [];
-      try {
-        allItems = (await PrismaRestaurantRepository.getMenuItems({
-          tenantId: filters?.tenantId,
-          category: filters?.category,
-          maxPrice: filters?.maxPrice,
-          spicinessLevel: filters?.spicinessLevel,
-        })) as MenuItem[];
-      } catch {
-        allItems = restaurantStore.getMenuItems(filters?.category as any) as MenuItem[];
-      }
+      let allItems: MenuItem[] = await PrismaRestaurantRepository.getMenuItems({
+        tenantId: filters?.tenantId,
+        category: filters?.category,
+        maxPrice: filters?.maxPrice,
+        spicinessLevel: filters?.spicinessLevel,
+      });
 
       if (filters?.maxPrice) {
         allItems = allItems.filter((i) => i.price <= filters.maxPrice!);
@@ -120,7 +111,6 @@ export class OramaMenuIndex {
       return allItems;
     }
 
-    // If explicit tolerance passed, use it directly
     const tolerancesToTry = filters?.tolerance !== undefined
       ? [filters.tolerance]
       : cleanQuery.length <= 3
@@ -141,7 +131,11 @@ export class OramaMenuIndex {
 
       let candidateHits = searchResults.hits.map((hit) => hit.document as unknown as MenuItem);
 
-      // Apply secondary filters
+      // TENANT ISOLATION: when a tenant filter is given, drop any document
+      // that does not belong to that tenant (never leak across tenants).
+      if (filters?.tenantId) {
+        candidateHits = candidateHits.filter((h) => h.tenantId === filters.tenantId);
+      }
       if (filters?.category && filters.category !== 'Semua') {
         candidateHits = candidateHits.filter((h) => h.category.toLowerCase() === filters.category!.toLowerCase());
       }
@@ -151,13 +145,10 @@ export class OramaMenuIndex {
       if (filters?.spicinessLevel) {
         candidateHits = candidateHits.filter((h) => Number(h.spicinessLevel) === Number(filters.spicinessLevel));
       }
-      if (filters?.tenantId) {
-        candidateHits = candidateHits.filter((h) => !h.tenantId || h.tenantId === filters.tenantId);
-      }
 
       if (candidateHits.length > 0) {
         hits = candidateHits;
-        break; // Stop escalating tolerance once higher quality matches are found
+        break;
       }
     }
 
@@ -194,10 +185,11 @@ export class OramaMenuIndex {
   }
 
   /**
-   * Force full re-index
+   * Force full re-index from PostgreSQL
    */
   public static async reindex(): Promise<void> {
     this.db = null;
+    this.lastBuildAt = 0;
     await this.getInstance();
   }
 }
