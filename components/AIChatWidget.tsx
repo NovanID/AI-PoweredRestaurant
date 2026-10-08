@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { processAIChat, ChatMessage } from "../lib/ai-assistant-service";
-import { useRestaurant } from "../lib/use-restaurant";
+import type { AIChatResponse, UIChatMessage as ChatMessage } from "../lib/ai/types";
 
 interface AIChatWidgetProps {
   onTrackReservation?: (code: string) => void;
@@ -57,14 +56,35 @@ export default function AIChatWidget({ onTrackReservation }: AIChatWidgetProps) 
       // Simulate natural realistic thinking latency
       await new Promise((resolve) => setTimeout(resolve, 400));
 
-      const aiResponse = await processAIChat(query, messages, pendingConfirmation);
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: query,
+          history: messages,
+          pendingConfirmation,
+          context: { tenantId: "raso-minang-padang-01", locale: "id" },
+        }),
+      });
 
+      const aiResponse = (await res.json()) as AIChatResponse;
+      if (!res.ok || !aiResponse?.reply) {
+        throw new Error(aiResponse?.reply || "AI response invalid");
+      }
+
+      const firstToolCall = aiResponse.toolCalls?.[0];
       const assistantMsg: ChatMessage = {
         id: `ai-${Date.now()}`,
         sender: "assistant",
         text: aiResponse.reply,
         timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-        toolCall: aiResponse.toolCall,
+        toolCall: firstToolCall
+          ? {
+              name: firstToolCall.name,
+              params: firstToolCall.arguments,
+              result: firstToolCall.result,
+            }
+          : undefined,
         actionButtons: aiResponse.actionButtons,
       };
 
@@ -76,7 +96,7 @@ export default function AIChatWidget({ onTrackReservation }: AIChatWidgetProps) 
         {
           id: `ai-err-${Date.now()}`,
           sender: "assistant",
-          text: "Maaf, terjadi kendala saat memproses permintaan Anda. Silakan coba kembali.",
+          text: "Maaf, AI Assistant sedang mengalami kendala. Silakan coba lagi sebentar lagi.",
           timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
